@@ -24,3 +24,30 @@
       abort();                               \
     }                                        \
   } while (0)
+
+struct DeletionQueue {
+  std::deque<std::function<void()>> deletors;
+  void push(std::function<void()>&& function);
+  void flush();
+};
+
+struct FrameData {  // holds the structures and commands needed to render a
+                    // frame
+  VkCommandPool _commandPool;
+  VkCommandBuffer _mainCommandBuffer;
+  VkSemaphore _swapchainSemaphore;  // needed so that the render commands wait
+                                    // on the swapchain image request.
+  VkSemaphore _renderSemaphore;  // used to control presenting the image to the
+                                 // os once the drawing finishes
+  VkFence _renderFence;  // Allows to wait for the GPU to finish rendering
+
+  DeletionQueue _deleteQueue;
+};
+
+struct AllocatedImage {
+  VkImage image;
+  VkImageView imageView;
+  VmaAllocation allocation;
+  VkExtent3D imageExtent;
+  VkFormat imageFormat;
+};

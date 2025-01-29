@@ -2,18 +2,9 @@
 
 #include <VkBootstrap.h>
 #include <framework/vk_types.h>
+#include <vulkan/vulkan_core.h>
 
-struct FrameData {  // holds the structures and commands needed to render a
-                    // frame
-  VkCommandPool _commandPool;
-  VkCommandBuffer _mainCommandBuffer;
-  VkSemaphore _swapchainSemaphore;  // needed so that the render commands wait
-                                    // on the swapchain image request.
-  VkSemaphore _renderSemaphore;  // used to control presenting the image to the
-                                 // os once the drawing finishes
-  //
-  VkFence _renderFence;  // Allows to wait for the GPU to finish rendering
-};
+#include <functional>
 
 constexpr unsigned int FRAME_OVERLAP = 2;
 class VulkanEngine {
@@ -45,6 +36,13 @@ class VulkanEngine {
   VkQueue _graphicsQueue;
   uint32_t _graphicsQueueFamily;
 
+  DeletionQueue _mainDeletionQueue;
+
+  VmaAllocator _allocator;
+
+  AllocatedImage _drawImage;
+  VkExtent2D _drawExtent;
+
   static VulkanEngine& Get();
 
   // initializes everything in the engine
@@ -55,6 +53,7 @@ class VulkanEngine {
 
   // draw loop
   void draw();
+  void draw_background(VkCommandBuffer cmd);
 
   // run main loop
   void run();
