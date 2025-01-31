@@ -9,3 +9,5 @@ add_subdirectory(third_party)
 add_subdirectory(framework)
 
 add_subdirectory(src)
+
+add_subdirectory(shaders)

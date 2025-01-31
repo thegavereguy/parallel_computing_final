@@ -7,12 +7,16 @@ set(FRAMEWORK_HEADERS
 	include/vk_engine.h
 	include/vk_initializers.h
 	include/vk_image.h
+	include/vk_descriptors.h
+	include/vk_pipelines.h
 )
 
 	set(FRAMEWORK_SOURCES
 	vk_engine.cpp
 	vk_initializers.cpp
 	vk_image.cpp
+	vk_descriptors.cpp
+	vk_pipelines.cpp
 )
 set(PROJECT_FILES ${FRAMEWORK_headers} ${FRAMEWORK_SOURCES})
 

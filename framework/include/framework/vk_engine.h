@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VkBootstrap.h>
+#include <framework/vk_descriptors.h>
 #include <framework/vk_types.h>
 #include <vulkan/vulkan_core.h>
 
@@ -12,7 +13,7 @@ class VulkanEngine {
   bool _isInitialized{false};
   int _frameNumber{0};
   bool stop_rendering{false};
-  VkExtent2D _windowExtent{1700, 900};
+  VkExtent2D _windowExtent{480, 480};
 
   struct SDL_Window* _window{nullptr};
 
@@ -43,6 +44,13 @@ class VulkanEngine {
   AllocatedImage _drawImage;
   VkExtent2D _drawExtent;
 
+  DescriptorAllocator globalDescriptorAllocator;
+  VkDescriptorSet _drawImageDescriptors;
+  VkDescriptorSetLayout _drawImageDescriptorLayout;
+
+  VkPipeline _gradientPipeline;
+  VkPipelineLayout _gradientPipelineLayout;
+
   static VulkanEngine& Get();
 
   // initializes everything in the engine
@@ -67,7 +75,9 @@ class VulkanEngine {
   void init_swapchain();
   void init_commands();
   void init_sync_structures();
-
   void create_swapchain(uint32_t width, uint32_t height);
   void destroy_swapchain();
+  void init_descriptors();
+  void init_pipelines();
+  void init_background_pipelines();
 };
