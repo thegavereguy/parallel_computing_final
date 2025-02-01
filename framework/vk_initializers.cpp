@@ -144,3 +144,12 @@ VkImageViewCreateInfo vkinit::imageview_create_info(
 
   return info;
 }
+VkBufferCreateInfo vkinit::buffer_create_info(VkBufferUsageFlags flags,
+                                              VkDeviceSize size) {
+  VkBufferCreateInfo info = {};
+  info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  info.pNext              = nullptr;
+  info.size               = size;
+  info.usage              = flags;
+  return info;
+}

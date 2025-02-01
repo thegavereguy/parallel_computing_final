@@ -5,34 +5,20 @@
 #include <framework/vk_types.h>
 #include <vulkan/vulkan_core.h>
 
-#include <functional>
-
 constexpr unsigned int FRAME_OVERLAP = 2;
 class VulkanEngine {
  public:
   bool _isInitialized{false};
   int _frameNumber{0};
   bool stop_rendering{false};
-  VkExtent2D _windowExtent{480, 480};
-
-  struct SDL_Window* _window{nullptr};
 
   VkInstance _instance;                       // Vulkan library handle
   VkDebugUtilsMessengerEXT _debug_messenger;  // Vulkan debug output handle
 
+  VkSurfaceKHR _surface;  // this is going to be a headless surface provided by
+                          // the extension VK_EXT_headless_surface
   VkPhysicalDevice _chosenGPU;  // GPU chosen as the default device
   VkDevice _device;             // Vulkan device for commands
-  VkSurfaceKHR _surface;        // Vulkan window surface
-
-  VkSwapchainKHR _swapchain;       // The vk swapchain reference
-  VkFormat _swapchainImageFormat;  // The format of the swapchain images
-
-  std::vector<VkImage> _swapchainImages;  // Handler to the images to use as a
-                                          // texture or to render into
-  std::vector<VkImageView> _swapchainImageViews;  // A wrapper for the images
-  VkExtent2D _swapchainExtent;
-
-  FrameData _frames[FRAME_OVERLAP];
 
   VkQueue _graphicsQueue;
   uint32_t _graphicsQueueFamily;
@@ -40,43 +26,57 @@ class VulkanEngine {
   DeletionQueue _mainDeletionQueue;
 
   VmaAllocator _allocator;
-
-  AllocatedImage _drawImage;
-  VkExtent2D _drawExtent;
+  VkCommandPool _commandPool;
+  VkCommandBuffer _mainCommandBuffer;
+  VkSemaphore _swapchainSemaphore;  // needed so that the render commands wait
+                                    // on the swapchain image request.
+  VkSemaphore _renderSemaphore;  // used to control presenting the image to the
+                                 // os once the drawing finishes
+  VkFence _renderFence;  // Allows to wait for the GPU to finish rendering
 
   DescriptorAllocator globalDescriptorAllocator;
   VkDescriptorSet _drawImageDescriptors;
-  VkDescriptorSetLayout _drawImageDescriptorLayout;
+  VkDescriptorSetLayout _computeDescriptorLayout;
 
-  VkPipeline _gradientPipeline;
-  VkPipelineLayout _gradientPipelineLayout;
+  VkPipeline _computePipeline;
+  VkPipelineLayout pipelineLayout;
+
+  VkBuffer _inputBuffer;
+  VkBuffer _outputBuffer;
+  VmaAllocation _inputBufferMemory;
+  VmaAllocation _outputBufferMemory;
+
+  uint32_t _gridSize;
+  float _dt, _dx, _alpha;
+
+  struct PushConstants {
+    float dt;
+    float dx;
+    float alpha;
+    uint32_t size;
+  } _pushConstants;
 
   static VulkanEngine& Get();
 
   // initializes everything in the engine
-  void init();
+  void init(bool);
 
   // shuts down the engine
   void cleanup();
 
-  // draw loop
-  void draw();
-  void draw_background(VkCommandBuffer cmd);
-
   // run main loop
   void run();
 
-  FrameData& get_current_frame() {
-    return _frames[_frameNumber % FRAME_OVERLAP];
-  };
+  void compute();
+  void run_compute(const std::vector<float>& initial_conditions,
+                   uint32_t timesteps);
+  void set_costants(float dt, float dx, float alpha, uint32_t size);
 
  private:
   void init_vulkan();
-  void init_swapchain();
   void init_commands();
+  void init_buffers();
   void init_sync_structures();
-  void create_swapchain(uint32_t width, uint32_t height);
-  void destroy_swapchain();
   void init_descriptors();
   void init_pipelines();
   void init_background_pipelines();

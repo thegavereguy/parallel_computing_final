@@ -1,7 +1,10 @@
 #include <fmt/format.h>
 #include <framework/vk_engine.h>
 
+#include <algorithm>
 #include <glm/mat4x4.hpp>
+
+#include "fmt/base.h"
 
 int main(int argc, char **argv) {
   // print matrix
@@ -10,8 +13,12 @@ int main(int argc, char **argv) {
 
   VulkanEngine engine;
 
-  engine.init();
-  engine.run();
+  std::vector<float> initial_conditions = std::vector<float>(100);
+  std::fill(initial_conditions.rbegin(), initial_conditions.rend(), 1);
+
+  engine.init(true);
+  engine.set_costants(0.1, 0.1, 0.05, 1);
+  engine.run_compute(initial_conditions, 1);
   engine.cleanup();
 
   return 0;

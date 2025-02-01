@@ -23,5 +23,7 @@ VkImageViewCreateInfo imageview_create_info(VkFormat format, VkImage image,
 VkImageCreateInfo image_create_info(VkFormat format,
                                     VkImageUsageFlags usageFlags,
                                     VkExtent3D extent);
+VkBufferCreateInfo buffer_create_info(VkBufferUsageFlags flags,
+                                      VkDeviceSize size);
 
 }  // namespace vkinit

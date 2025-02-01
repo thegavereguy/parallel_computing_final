@@ -1,0 +1,34 @@
+#version 450
+
+layout(local_size_x = 256) in;
+
+layout(binding = 0) buffer InputBuffer {
+    float input_temp[];
+};
+
+layout(binding = 1) buffer OutputBuffer {
+    float output_temp[];
+};
+
+layout(push_constant) uniform Constants {
+    float dt;           // Time step
+    float dx;           // Space step
+    float alpha;        // Thermal diffusivity
+    uint size;         // Grid size
+} params;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    
+    // Boundary check
+    if (idx >= params.size || idx == 0 || idx == params.size - 1) {
+        // Keep boundary conditions fixed
+        output_temp[idx] = input_temp[idx];
+        return;
+    }
+
+    // Explicit finite difference method for heat equation
+    // u_t = alpha * u_xx
+    float u_xx = (input_temp[idx+1] - 2.0 * input_temp[idx] + input_temp[idx-1]) / (params.dx * params.dx);
+    output_temp[idx] = input_temp[idx] + params.dt * params.alpha * u_xx;
+}
