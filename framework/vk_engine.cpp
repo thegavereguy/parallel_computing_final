@@ -35,6 +35,7 @@ void VulkanEngine::init(bool bEnableValidationLayers) {
   init_vulkan();
   init_commands();
   init_sync_structures();
+  init_buffers();
   init_descriptors();
   init_pipelines();
 
@@ -70,73 +71,58 @@ void VulkanEngine::compute() { fmt::print("main compute\n"); }
 void VulkanEngine::run_compute(const std::vector<float>& initial_conditions,
                                uint32_t timesteps) {
   fmt::print("Starting Compute Configuration\n");
-
-  void* data;
-  // vkMapMemory(_device, inputBufferMemory->GetMemory(), 0,
-  // initial_conditions.size() * sizeof(float), 0, &data); memcpy(data,
-  // initial_conditions.data(), initial_conditions.size() * sizeof(float));
-  // vkUnmapMemory(_device, inputBufferMemory->GetMemory());
-
-  VkBufferCreateInfo bufCreateInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-  bufCreateInfo.size               = initial_conditions.size() * sizeof(float);
-  bufCreateInfo.usage              = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-  VmaAllocationCreateInfo allocCreateInfo = {};
-  allocCreateInfo.usage                   = VMA_MEMORY_USAGE_AUTO;
-  allocCreateInfo.flags =
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-
-  vmaCreateBuffer(_allocator, &bufCreateInfo, &allocCreateInfo, &_inputBuffer,
-                  &_inputBufferMemory, nullptr);
-
   // Record command buffer
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-  PushConstants pushConstants{0.1, 0.2, 0.03, 4};
+  write_buffer();
+  // for (uint32_t i = 0; i < timesteps; i++) {
+  vkBeginCommandBuffer(_mainCommandBuffer, &beginInfo);
 
-  for (uint32_t i = 0; i < timesteps; i++) {
-    vkBeginCommandBuffer(_mainCommandBuffer, &beginInfo);
+  vkCmdBindPipeline(_mainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                    _computePipeline);
+  vkCmdBindDescriptorSets(_mainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                          pipelineLayout, 0, 1, &_bufferDescriptors, 0,
+                          nullptr);
 
-    vkCmdBindPipeline(_mainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                      _computePipeline);
-    vkCmdBindDescriptorSets(_mainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            pipelineLayout, 0, 1, &_drawImageDescriptors, 0,
-                            nullptr);
+  vkCmdPushConstants(_mainCommandBuffer, pipelineLayout,
+                     VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
+                     &_pushConstants);
 
-    vkCmdPushConstants(_mainCommandBuffer, pipelineLayout,
-                       VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
-                       &pushConstants);
+  // Dispatch compute shader
+  fmt::print("Dispatching compute shader\n");
+  // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
+  vkCmdDispatch(_mainCommandBuffer, 1, 1, 1);
 
-    // Dispatch compute shader
-    // vkCmdDispatch(_mainCommandBuffer, (gridSize + 255) / 256, 1, 1);
+  // Add memory barrier for buffer synchronization
+  VkMemoryBarrier barrier{};
+  barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+  barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    // Add memory barrier for buffer synchronization
-    VkMemoryBarrier barrier{};
-    barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  vkCmdPipelineBarrier(_mainCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0,
+                       nullptr, 0, nullptr);
 
-    vkCmdPipelineBarrier(_mainCommandBuffer,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier,
-                         0, nullptr, 0, nullptr);
+  // Swap buffers for next iteration
 
-    // Swap buffers for next iteration
-    std::swap(_inputBuffer, _outputBuffer);
+  vkEndCommandBuffer(_mainCommandBuffer);
 
-    vkEndCommandBuffer(_mainCommandBuffer);
+  // Submit command buffer
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers    = &_mainCommandBuffer;
 
-    // Submit command buffer
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &_mainCommandBuffer;
-
+  fmt::print("Submitting command buffer\n");
+  for (int i = 0; i < timesteps; i++) {
     vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(_graphicsQueue);
+    std::swap(_inputBuffer, _outputBuffer);
   }
+  // }
 
+  read_buffer();
   compute();
 }
 
@@ -144,12 +130,16 @@ void VulkanEngine::init_vulkan() {
   vkb::InstanceBuilder builder;
   // create the vulkan instance
   // abstrancts the creation of the VkInstance
-  auto inst_ret = builder.set_app_name("Hello Triangle")
-                      .request_validation_layers(bUseValidationLayers)
-                      .enable_extension(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
-                      .use_default_debug_messenger()
-                      .require_api_version(1, 3, 0)
-                      .build();
+  auto inst_ret =
+      builder
+          .set_app_name("Hello Triangle")
+          //                .request_validation_layers(bUseValidationLayers)
+          //                 .enable_validation_layers(true)
+          //.add_validation_feature_enable(VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT)
+          .enable_extension(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
+          .use_default_debug_messenger()
+          .require_api_version(1, 3, 0)
+          .build();
 
   vkb::Instance vkb_inst = inst_ret.value();
 
@@ -273,7 +263,7 @@ void VulkanEngine::init_descriptors() {
   // the storage type is used for a image that can be written to from a compute
   // shader
   std::vector<DescriptorAllocator::PoolSizeRatio> sizes = {
-      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}};
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2}};
 
   globalDescriptorAllocator.init_pool(_device, 10, sizes);
 
@@ -290,10 +280,35 @@ void VulkanEngine::init_descriptors() {
   // it so it points to the draw image.
 
   // allocate a descriptor set for our draw image
-  _drawImageDescriptors =
+  _bufferDescriptors =
       globalDescriptorAllocator.allocate(_device, _computeDescriptorLayout);
 
-  VkDescriptorBufferInfo bufInfo{};
+  VkDescriptorBufferInfo inputBufferInfo{};
+  inputBufferInfo.buffer = _inputBuffer;
+  inputBufferInfo.offset = 0;
+  inputBufferInfo.range  = VK_WHOLE_SIZE;
+  VkDescriptorBufferInfo outputBufferInfo{};
+  outputBufferInfo.buffer = _outputBuffer;
+  outputBufferInfo.offset = 0;
+  outputBufferInfo.range  = VK_WHOLE_SIZE;
+
+  VkWriteDescriptorSet descriptorWrites[2]{};
+
+  descriptorWrites[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  descriptorWrites[0].dstSet          = _bufferDescriptors;
+  descriptorWrites[0].dstBinding      = 0;
+  descriptorWrites[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  descriptorWrites[0].descriptorCount = 1;
+  descriptorWrites[0].pBufferInfo     = &inputBufferInfo;
+
+  descriptorWrites[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  descriptorWrites[1].dstSet          = _bufferDescriptors;
+  descriptorWrites[1].dstBinding      = 1;
+  descriptorWrites[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  descriptorWrites[1].descriptorCount = 1;
+  descriptorWrites[1].pBufferInfo     = &outputBufferInfo;
+
+  vkUpdateDescriptorSets(_device, 2, descriptorWrites, 0, nullptr);
 
   // make sure both the descriptor allocator and the new layout get cleaned up
   // properly
@@ -361,28 +376,36 @@ void VulkanEngine::init_background_pipelines() {
 
 void VulkanEngine::init_buffers() {
   // create the input buffer
-  VkBufferCreateInfo bufferInfo = vkinit::buffer_create_info(
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-      sizeof(float) * _gridSize);
-
-  VmaAllocationCreateInfo vmaAllocCI = {};
-  vmaAllocCI.usage                   = VMA_MEMORY_USAGE_CPU_TO_GPU;
-  VmaAllocationInfo vmaallocInputInfo{};
-  VK_CHECK(vmaCreateBuffer(_allocator, &bufferInfo, &vmaAllocCI, &_inputBuffer,
-                           &_inputBufferMemory, &vmaallocInputInfo));
-  // create the output buffer
-  vmaAllocCI.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
-  bufferInfo       = vkinit::buffer_create_info(
+  VkBufferCreateInfo inputBufferInfo = vkinit::buffer_create_info(
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       sizeof(float) * _gridSize);
-  VmaAllocationInfo vmaallocOutputInfo{};
-  VK_CHECK(vmaCreateBuffer(_allocator, &bufferInfo, &vmaAllocCI, &_outputBuffer,
-                           &_outputBufferMemory, &vmaallocOutputInfo));
 
-  // add the buffers to the deletion queue
+  VmaAllocationCreateInfo vmaInputAllocCI = {};
+  vmaInputAllocCI.usage                   = VMA_MEMORY_USAGE_AUTO;
+  vmaInputAllocCI.flags =
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  vmaInputAllocCI.memoryTypeBits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+  VK_CHECK(vmaCreateBuffer(_allocator, &inputBufferInfo, &vmaInputAllocCI,
+                           &_inputBuffer, &_inputBufferAlloc, nullptr));
+  // create the output buffer
+  // vmaAllocCI.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+  VkBufferCreateInfo outputBufferInfo = vkinit::buffer_create_info(
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      sizeof(float) * _gridSize);
+  VmaAllocationCreateInfo vmaOutputAllocCI = {};
+  vmaOutputAllocCI.usage                   = VMA_MEMORY_USAGE_AUTO;
+  vmaOutputAllocCI.flags =
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  vmaOutputAllocCI.memoryTypeBits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+
+  VK_CHECK(vmaCreateBuffer(_allocator, &outputBufferInfo, &vmaOutputAllocCI,
+                           &_outputBuffer, &_outputBufferAlloc, nullptr));
+
+  // vmaBindBufferMemory(_allocator, _inputBufferAlloc, _inputBuffer);
+  //  add the buffers to the deletion queue
   _mainDeletionQueue.push([&]() {
-    vmaDestroyBuffer(_allocator, _inputBuffer, _inputBufferMemory);
-    vmaDestroyBuffer(_allocator, _outputBuffer, _outputBufferMemory);
+    vmaDestroyBuffer(_allocator, _inputBuffer, _inputBufferAlloc);
+    vmaDestroyBuffer(_allocator, _outputBuffer, _outputBufferAlloc);
   });
 }
 void VulkanEngine::set_costants(float dt, float dx, float alpha,
@@ -391,6 +414,59 @@ void VulkanEngine::set_costants(float dt, float dx, float alpha,
   _pushConstants.dx    = dx;
   _pushConstants.alpha = alpha;
   _pushConstants.size  = size;
+}
+void VulkanEngine::set_initial_conditions(std::vector<float> initial) {
+  _initial_conditions = new float[initial.size()];
+  // _initial_conditions = initial.data();
+  for (int i = 0; i < initial.size(); i++) {
+    _initial_conditions[i] = initial[i];
+  }
+  _gridSize = initial.size();
+}
+void VulkanEngine::write_buffer() {
+  fmt::print("Writing data into input buffer\n");
+  // write the initial conditions to the input buffer
+  // void* data;
+  // vmaMapMemory(_allocator, _inputBufferMemory, &data);
+  // memcpy(data, &_pushConstants, sizeof(_pushConstants));
+  // vmaUnmapMemory(_allocator, _inputBufferMemory);
+
+  fmt::print("Initial conditions: ");
+  for (int i = 0; i < 16; i++) {
+    fmt::print("{:.2f} ", _initial_conditions[i]);
+  }
+  // VK_CHECK(vmaCopyMemoryToAllocation( _allocator, &initial_conditions,
+  // _inputBufferMemory, 0, initial_conditions.size() * sizeof(float)));
+  // VK_CHECK(vmaMapMemory(_allocator, _inputBufferAlloc, (void**)&data));
+  VK_CHECK(vmaCopyMemoryToAllocation(_allocator, _initial_conditions,
+                                     _inputBufferAlloc, 0,
+                                     _gridSize * sizeof(float)));
+  // memcpy(data, initial_conditions.data(),
+  //       initial_conditions.size() * sizeof(float));
+  // vmaUnmapMemory(_allocator, _inputBufferAlloc);
+  //  delete[] data;  //for some reason this crashes the program
+}
+
+void VulkanEngine::read_buffer() {
+  fmt::print("Reading data from output buffer\n");
+  // read the output buffer
+  // void* data;
+  // vmaMapMemory(_allocator, _outputBufferMemory, &data);
+  // memcpy(&_pushConstants, data, sizeof(_pushConstants));
+  // vmaUnmapMemory(_allocator, _outputBufferMemory);
+  // std::vector<float> output_data = std::vector<float>(16);
+
+  float* output_data = new float[16];
+  for (int i = 0; i < 16; i++) {
+    output_data[i] = -1;
+  }
+  VK_CHECK(vmaCopyAllocationToMemory(_allocator, _outputBufferAlloc, 0,
+                                     output_data, 16 * sizeof(float)));
+  fmt::print("Output data: ");
+  for (int i = 0; i < 16; i++) {
+    fmt::print("{} ", output_data[i]);
+  }
+  fmt::print("\n");
 }
 
 void DeletionQueue::push(std::function<void()>&& function) {

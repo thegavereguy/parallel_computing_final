@@ -13,12 +13,16 @@ int main(int argc, char **argv) {
 
   VulkanEngine engine;
 
-  std::vector<float> initial_conditions = std::vector<float>(100);
-  std::fill(initial_conditions.rbegin(), initial_conditions.rend(), 1);
+  std::vector<float> initial_conditions = std::vector<float>(16);
+  std::fill(initial_conditions.rbegin(), initial_conditions.rend(), 0);
+  initial_conditions.at(0) = 100;
+  // initial_conditions.at(5)  = 200;
+  initial_conditions.at(15) = 200;
 
   engine.init(true);
-  engine.set_costants(0.1, 0.1, 0.05, 1);
-  engine.run_compute(initial_conditions, 1);
+  engine.set_costants(0.01 / 5, ((float)1 / 15), 0.05, 16);
+  engine.set_initial_conditions(initial_conditions);
+  engine.run_compute(initial_conditions, 5);
   engine.cleanup();
 
   return 0;

@@ -35,7 +35,7 @@ class VulkanEngine {
   VkFence _renderFence;  // Allows to wait for the GPU to finish rendering
 
   DescriptorAllocator globalDescriptorAllocator;
-  VkDescriptorSet _drawImageDescriptors;
+  VkDescriptorSet _bufferDescriptors;
   VkDescriptorSetLayout _computeDescriptorLayout;
 
   VkPipeline _computePipeline;
@@ -43,11 +43,12 @@ class VulkanEngine {
 
   VkBuffer _inputBuffer;
   VkBuffer _outputBuffer;
-  VmaAllocation _inputBufferMemory;
-  VmaAllocation _outputBufferMemory;
+  VmaAllocation _inputBufferAlloc;
+  VmaAllocation _outputBufferAlloc;
 
-  uint32_t _gridSize;
+  uint32_t _gridSize = 16;
   float _dt, _dx, _alpha;
+  float* _initial_conditions;
 
   struct PushConstants {
     float dt;
@@ -71,6 +72,7 @@ class VulkanEngine {
   void run_compute(const std::vector<float>& initial_conditions,
                    uint32_t timesteps);
   void set_costants(float dt, float dx, float alpha, uint32_t size);
+  void set_initial_conditions(std::vector<float>);
 
  private:
   void init_vulkan();
@@ -80,4 +82,6 @@ class VulkanEngine {
   void init_descriptors();
   void init_pipelines();
   void init_background_pipelines();
+  void write_buffer();
+  void read_buffer();
 };

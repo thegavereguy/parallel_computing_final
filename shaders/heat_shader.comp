@@ -1,6 +1,7 @@
 #version 450
+#extension GL_EXT_debug_printf : enable
 
-layout(local_size_x = 256) in;
+layout(local_size_x = 16) in;
 
 layout(binding = 0) buffer InputBuffer {
     float input_temp[];
@@ -14,15 +15,17 @@ layout(push_constant) uniform Constants {
     float dt;           // Time step
     float dx;           // Space step
     float alpha;        // Thermal diffusivity
-    uint size;         // Grid size
+    uint grid;         // Grid size
 } params;
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;
-    
+    //debugPrintfEXT("index: %d ", idx);    
+		debugPrintfEXT("index: %d (grid: %d), current value: %f\n",idx,params.grid, input_temp[idx]);
+		//debugPrintfEXT("dt: %f\n", params.dt);
     // Boundary check
-    if (idx >= params.size || idx == 0 || idx == params.size - 1) {
-        // Keep boundary conditions fixed
+     if (idx >= params.grid || idx == 0 || idx == params.grid - 1) {
+         // Keep boundary conditions fixed
         output_temp[idx] = input_temp[idx];
         return;
     }
@@ -31,4 +34,5 @@ void main() {
     // u_t = alpha * u_xx
     float u_xx = (input_temp[idx+1] - 2.0 * input_temp[idx] + input_temp[idx-1]) / (params.dx * params.dx);
     output_temp[idx] = input_temp[idx] + params.dt * params.alpha * u_xx;
+		//output_temp[idx] = input_temp[idx] * 2;
 }
