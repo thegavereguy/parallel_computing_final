@@ -91,10 +91,9 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps) {
                             nullptr);
 
     // Dispatch compute shader
-    fmt::print("Dispatching compute shader A\n");
+    // fmt::print("Dispatching compute shader A\n");
     // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
-    vkCmdDispatch(_mainCommandBufferA, 2, 1, 1);
-    fmt::print("lksjdflkjsdf");
+    vkCmdDispatch(_mainCommandBufferA, (_gridSize / 128), 1, 1);
 
     // Add memory barrier for buffer synchronization
     VkMemoryBarrier barrier{};
@@ -158,7 +157,7 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps) {
     // submitInfoB.commandBufferCount = 1;
     // submitInfoB.pCommandBuffers    = &_mainCommandBufferB;
     //
-    fmt::print("Submitting command buffer\n");
+    // fmt::print("Submitting command buffer\n");
     // for (int i = 0; i < timesteps; i++) {
     vkQueueSubmit(_graphicsQueue, 1, &submitInfoA, VK_NULL_HANDLE);
     vkQueueWaitIdle(_graphicsQueue);
@@ -433,6 +432,7 @@ void VulkanEngine::init_background_pipelines() {
 
 void VulkanEngine::init_buffers() {
   // create the input buffer
+  fmt::print("Creating storage buffers\n");
   VkBufferCreateInfo inputBufferInfo = vkinit::buffer_create_info(
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       sizeof(float) * _gridSize);
@@ -471,6 +471,7 @@ void VulkanEngine::set_costants(float dt, float dx, float alpha,
   _pushConstants.dx    = dx;
   _pushConstants.alpha = alpha;
   _pushConstants.size  = size;
+  _gridSize            = size;
 }
 void VulkanEngine::set_initial_conditions(std::vector<float> initial) {
   _initial_conditions = new float[initial.size()];
@@ -489,7 +490,7 @@ void VulkanEngine::write_buffer() {
   // vmaUnmapMemory(_allocator, _inputBufferMemory);
 
   fmt::print("Initial conditions: ");
-  for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < _gridSize; i++) {
     fmt::print("{:.2f} ", _initial_conditions[i]);
   }
   // VK_CHECK(vmaCopyMemoryToAllocation( _allocator, &initial_conditions,
@@ -513,17 +514,11 @@ std::vector<float> VulkanEngine::read_buffer() {
   // vmaUnmapMemory(_allocator, _outputBufferMemory);
   // std::vector<float> output_data = std::vector<float>(16);
 
-  float* output_data = new float[16];
+  float* output_data = new float[_gridSize];
 
   VK_CHECK(vmaCopyAllocationToMemory(_allocator, _outputBufferAlloc, 0,
-                                     output_data, 16 * sizeof(float)));
-  // fmt::print("Output data: ");
-  // for (int i = 0; i < 16; i++) {
-  //   fmt::print("{} ", output_data[i]);
-  // }
-  // fmt::print("\n");
-
-  std::vector<float> output_vector(output_data, output_data + 16);
+                                     output_data, _gridSize * sizeof(float)));
+  std::vector<float> output_vector(output_data, output_data + _gridSize);
   // vmaUnmapMemory(_allocator, _outputBufferAlloc);
   // delete[] data;
   return output_vector;

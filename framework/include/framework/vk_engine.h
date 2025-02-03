@@ -52,7 +52,7 @@ class VulkanEngine {
   VmaAllocation _inputBufferAlloc;
   VmaAllocation _outputBufferAlloc;
 
-  uint32_t _gridSize = 16;
+  uint32_t _gridSize;
   float _dt, _dx, _alpha;
   float* _initial_conditions;
 
