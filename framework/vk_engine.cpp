@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include <SDL_vulkan.h>
+#include <VkBootstrap.h>
 #include <fmt/base.h>
 #include <fmt/core.h>
 #include <framework/vk_engine.h>
@@ -13,6 +14,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <utility>
 #include <vector>
 
 #include "SDL_events.h"
@@ -75,95 +77,96 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps) {
   beginInfoA.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
   write_buffer();
-  // for (uint32_t i = 0; i < timesteps; i++) {
-  vkBeginCommandBuffer(_mainCommandBufferA, &beginInfoA);
+  for (uint32_t i = 0; i < timesteps; i++) {
+    vkBeginCommandBuffer(_mainCommandBufferA, &beginInfoA);
 
-  vkCmdBindPipeline(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
-                    _computePipeline);
-  vkCmdPushConstants(_mainCommandBufferA, pipelineLayout,
-                     VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
-                     &_pushConstants);
+    vkCmdBindPipeline(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      _computePipeline);
+    vkCmdPushConstants(_mainCommandBufferA, pipelineLayout,
+                       VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
+                       &_pushConstants);
 
-  vkCmdBindDescriptorSets(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
-                          pipelineLayout, 0, 1, &_bufferDescriptorsA, 0,
-                          nullptr);
+    vkCmdBindDescriptorSets(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            pipelineLayout, 0, 1, &_bufferDescriptorsA, 0,
+                            nullptr);
 
-  // Dispatch compute shader
-  fmt::print("Dispatching compute shader A\n");
-  // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
-  vkCmdDispatch(_mainCommandBufferA, 2, 1, 1);
-  fmt::print("lksjdflkjsdf");
+    // Dispatch compute shader
+    fmt::print("Dispatching compute shader A\n");
+    // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
+    vkCmdDispatch(_mainCommandBufferA, 2, 1, 1);
+    fmt::print("lksjdflkjsdf");
 
-  // Add memory barrier for buffer synchronization
-  VkMemoryBarrier barrier{};
-  barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-  barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-  barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    // Add memory barrier for buffer synchronization
+    VkMemoryBarrier barrier{};
+    barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-  vkCmdPipelineBarrier(_mainCommandBufferA,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0,
-                       nullptr, 0, nullptr);
+    vkCmdPipelineBarrier(_mainCommandBufferA,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier,
+                         0, nullptr, 0, nullptr);
 
-  // Swap buffers for next iteration
+    // Swap buffers for next iteration
 
-  vkEndCommandBuffer(_mainCommandBufferA);
+    vkEndCommandBuffer(_mainCommandBufferA);
 
-  // Submit command buffer
-  VkSubmitInfo submitInfoA{};
-  submitInfoA.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfoA.commandBufferCount = 1;
-  submitInfoA.pCommandBuffers    = &_mainCommandBufferA;
+    // Submit command buffer
+    VkSubmitInfo submitInfoA{};
+    submitInfoA.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfoA.commandBufferCount = 1;
+    submitInfoA.pCommandBuffers    = &_mainCommandBufferA;
 
-  // Record command buffer B
-  // VkCommandBufferBeginInfo beginInfoB{};
-  // beginInfoB.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  //
-  // vkBeginCommandBuffer(_mainCommandBufferB, &beginInfoB);
-  //
-  // vkCmdBindPipeline(_mainCommandBufferB, VK_PIPELINE_BIND_POINT_COMPUTE,
-  //                   _computePipeline);
-  // vkCmdPushConstants(_mainCommandBufferB, pipelineLayout,
-  //                    VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
-  //                    &_pushConstants);
-  //
-  // vkCmdBindDescriptorSets(_mainCommandBufferB,
-  // VK_PIPELINE_BIND_POINT_COMPUTE,
-  //                         pipelineLayout, 0, 1, &_bufferDescriptorsB, 0,
-  //                         nullptr);
-  //
-  // // Dispatch compute shader
-  // fmt::print("Dispatching compute shader B\n");
-  // // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
-  // vkCmdDispatch(_mainCommandBufferB, 2, 1, 1);
-  //
-  // // Add memory barrier for buffer synchronization
-  // VkMemoryBarrier barrierB{};
-  // barrierB.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-  // barrierB.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-  // barrierB.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-  //
-  // vkCmdPipelineBarrier(_mainCommandBufferB,
-  //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-  //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrierB,
-  //                      0, nullptr, 0, nullptr);
-  //
-  // vkEndCommandBuffer(_mainCommandBufferB);
-  //
-  // // Submit command buffer
-  // VkSubmitInfo submitInfoB{};
-  // submitInfoB.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  // submitInfoB.commandBufferCount = 1;
-  // submitInfoB.pCommandBuffers    = &_mainCommandBufferB;
-  //
-  fmt::print("Submitting command buffer\n");
-  for (int i = 0; i < timesteps; i++) {
+    // Record command buffer B
+    // VkCommandBufferBeginInfo beginInfoB{};
+    // beginInfoB.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    //
+    // vkBeginCommandBuffer(_mainCommandBufferB, &beginInfoB);
+    //
+    // vkCmdBindPipeline(_mainCommandBufferB, VK_PIPELINE_BIND_POINT_COMPUTE,
+    //                   _computePipeline);
+    // vkCmdPushConstants(_mainCommandBufferB, pipelineLayout,
+    //                    VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
+    //                    &_pushConstants);
+    //
+    // vkCmdBindDescriptorSets(_mainCommandBufferB,
+    // VK_PIPELINE_BIND_POINT_COMPUTE,
+    //                         pipelineLayout, 0, 1, &_bufferDescriptorsB, 0,
+    //                         nullptr);
+    //
+    // // Dispatch compute shader
+    // fmt::print("Dispatching compute shader B\n");
+    // // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
+    // vkCmdDispatch(_mainCommandBufferB, 2, 1, 1);
+    //
+    // // Add memory barrier for buffer synchronization
+    // VkMemoryBarrier barrierB{};
+    // barrierB.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    // barrierB.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    // barrierB.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    //
+    // vkCmdPipelineBarrier(_mainCommandBufferB,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
+    //                      &barrierB, 0, nullptr, 0, nullptr);
+    //
+    // vkEndCommandBuffer(_mainCommandBufferB);
+    //
+    // // Submit command buffer
+    // VkSubmitInfo submitInfoB{};
+    // submitInfoB.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    // submitInfoB.commandBufferCount = 1;
+    // submitInfoB.pCommandBuffers    = &_mainCommandBufferB;
+    //
+    fmt::print("Submitting command buffer\n");
+    // for (int i = 0; i < timesteps; i++) {
     vkQueueSubmit(_graphicsQueue, 1, &submitInfoA, VK_NULL_HANDLE);
     vkQueueWaitIdle(_graphicsQueue);
     // vkQueueSubmit(_graphicsQueue, 1, &submitInfoB, VK_NULL_HANDLE);
     // vkQueueWaitIdle(_graphicsQueue);
+    //}
+    std::swap(_bufferDescriptorsA, _bufferDescriptorsB);
   }
-
   return read_buffer();
   // compute();
 }
