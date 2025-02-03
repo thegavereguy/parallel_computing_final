@@ -13,7 +13,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <thread>
+#include <vector>
 
 #include "SDL_events.h"
 
@@ -68,31 +68,31 @@ void VulkanEngine::cleanup() {
 
 void VulkanEngine::compute() { fmt::print("main compute\n"); }
 
-void VulkanEngine::run_compute(const std::vector<float>& initial_conditions,
-                               uint32_t timesteps) {
+std::vector<float> VulkanEngine::run_compute(uint32_t timesteps) {
   fmt::print("Starting Compute Configuration\n");
-  // Record command buffer
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  // Record command buffer A
+  VkCommandBufferBeginInfo beginInfoA{};
+  beginInfoA.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
   write_buffer();
   // for (uint32_t i = 0; i < timesteps; i++) {
-  vkBeginCommandBuffer(_mainCommandBuffer, &beginInfo);
+  vkBeginCommandBuffer(_mainCommandBufferA, &beginInfoA);
 
-  vkCmdBindPipeline(_mainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+  vkCmdBindPipeline(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
                     _computePipeline);
-  vkCmdBindDescriptorSets(_mainCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                          pipelineLayout, 0, 1, &_bufferDescriptors, 0,
-                          nullptr);
-
-  vkCmdPushConstants(_mainCommandBuffer, pipelineLayout,
+  vkCmdPushConstants(_mainCommandBufferA, pipelineLayout,
                      VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
                      &_pushConstants);
 
+  vkCmdBindDescriptorSets(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
+                          pipelineLayout, 0, 1, &_bufferDescriptorsA, 0,
+                          nullptr);
+
   // Dispatch compute shader
-  fmt::print("Dispatching compute shader\n");
+  fmt::print("Dispatching compute shader A\n");
   // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
-  vkCmdDispatch(_mainCommandBuffer, 1, 1, 1);
+  vkCmdDispatch(_mainCommandBufferA, 2, 1, 1);
+  fmt::print("lksjdflkjsdf");
 
   // Add memory barrier for buffer synchronization
   VkMemoryBarrier barrier{};
@@ -100,30 +100,72 @@ void VulkanEngine::run_compute(const std::vector<float>& initial_conditions,
   barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
   barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-  vkCmdPipelineBarrier(_mainCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+  vkCmdPipelineBarrier(_mainCommandBufferA,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0,
                        nullptr, 0, nullptr);
 
   // Swap buffers for next iteration
 
-  vkEndCommandBuffer(_mainCommandBuffer);
+  vkEndCommandBuffer(_mainCommandBufferA);
 
   // Submit command buffer
-  VkSubmitInfo submitInfo{};
-  submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers    = &_mainCommandBuffer;
+  VkSubmitInfo submitInfoA{};
+  submitInfoA.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfoA.commandBufferCount = 1;
+  submitInfoA.pCommandBuffers    = &_mainCommandBufferA;
 
+  // Record command buffer B
+  // VkCommandBufferBeginInfo beginInfoB{};
+  // beginInfoB.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  //
+  // vkBeginCommandBuffer(_mainCommandBufferB, &beginInfoB);
+  //
+  // vkCmdBindPipeline(_mainCommandBufferB, VK_PIPELINE_BIND_POINT_COMPUTE,
+  //                   _computePipeline);
+  // vkCmdPushConstants(_mainCommandBufferB, pipelineLayout,
+  //                    VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
+  //                    &_pushConstants);
+  //
+  // vkCmdBindDescriptorSets(_mainCommandBufferB,
+  // VK_PIPELINE_BIND_POINT_COMPUTE,
+  //                         pipelineLayout, 0, 1, &_bufferDescriptorsB, 0,
+  //                         nullptr);
+  //
+  // // Dispatch compute shader
+  // fmt::print("Dispatching compute shader B\n");
+  // // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
+  // vkCmdDispatch(_mainCommandBufferB, 2, 1, 1);
+  //
+  // // Add memory barrier for buffer synchronization
+  // VkMemoryBarrier barrierB{};
+  // barrierB.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+  // barrierB.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  // barrierB.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  //
+  // vkCmdPipelineBarrier(_mainCommandBufferB,
+  //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+  //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrierB,
+  //                      0, nullptr, 0, nullptr);
+  //
+  // vkEndCommandBuffer(_mainCommandBufferB);
+  //
+  // // Submit command buffer
+  // VkSubmitInfo submitInfoB{};
+  // submitInfoB.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  // submitInfoB.commandBufferCount = 1;
+  // submitInfoB.pCommandBuffers    = &_mainCommandBufferB;
+  //
   fmt::print("Submitting command buffer\n");
   for (int i = 0; i < timesteps; i++) {
-    vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueSubmit(_graphicsQueue, 1, &submitInfoA, VK_NULL_HANDLE);
     vkQueueWaitIdle(_graphicsQueue);
-    std::swap(_inputBuffer, _outputBuffer);
+    // vkQueueSubmit(_graphicsQueue, 1, &submitInfoB, VK_NULL_HANDLE);
+    // vkQueueWaitIdle(_graphicsQueue);
   }
-  // }
 
-  read_buffer();
-  compute();
+  return read_buffer();
+  // compute();
 }
 
 void VulkanEngine::init_vulkan() {
@@ -209,8 +251,11 @@ void VulkanEngine::init_vulkan() {
   _graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
   _graphicsQueueFamily =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
-
   fmt::println("Selected graphics queue: {}", _graphicsQueueFamily);
+  // _computeQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+  // _computeQueueFamily =
+  //     vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
+  // fmt::println("Selected compute queue: {}", _computeQueueFamily);
 
   // initialize the memory allocator
   fmt::print("Creating VMA Allocator\n");
@@ -241,7 +286,7 @@ void VulkanEngine::init_commands() {
   VkCommandBufferAllocateInfo cmdAllocInfo =
       vkinit::command_buffer_allocate_info(_commandPool, 1);
   VK_CHECK(
-      vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_mainCommandBuffer));
+      vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_mainCommandBufferA));
 }
 void VulkanEngine::init_sync_structures() {
   // create synchronization structures
@@ -279,8 +324,10 @@ void VulkanEngine::init_descriptors() {
   // number 0, of type matching the pool We now allocate one of them, and make
   // it so it points to the draw image.
 
-  // allocate a descriptor set for our draw image
-  _bufferDescriptors =
+  _bufferDescriptorsA =
+      globalDescriptorAllocator.allocate(_device, _computeDescriptorLayout);
+
+  _bufferDescriptorsB =
       globalDescriptorAllocator.allocate(_device, _computeDescriptorLayout);
 
   VkDescriptorBufferInfo inputBufferInfo{};
@@ -295,18 +342,25 @@ void VulkanEngine::init_descriptors() {
   VkWriteDescriptorSet descriptorWrites[2]{};
 
   descriptorWrites[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  descriptorWrites[0].dstSet          = _bufferDescriptors;
+  descriptorWrites[0].dstSet          = _bufferDescriptorsA;
   descriptorWrites[0].dstBinding      = 0;
   descriptorWrites[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   descriptorWrites[0].descriptorCount = 1;
   descriptorWrites[0].pBufferInfo     = &inputBufferInfo;
 
   descriptorWrites[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  descriptorWrites[1].dstSet          = _bufferDescriptors;
+  descriptorWrites[1].dstSet          = _bufferDescriptorsA;
   descriptorWrites[1].dstBinding      = 1;
   descriptorWrites[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   descriptorWrites[1].descriptorCount = 1;
   descriptorWrites[1].pBufferInfo     = &outputBufferInfo;
+
+  vkUpdateDescriptorSets(_device, 2, descriptorWrites, 0, nullptr);
+
+  descriptorWrites[0].dstSet      = _bufferDescriptorsB;
+  descriptorWrites[0].pBufferInfo = &outputBufferInfo;
+  descriptorWrites[1].dstSet      = _bufferDescriptorsB;
+  descriptorWrites[1].pBufferInfo = &inputBufferInfo;
 
   vkUpdateDescriptorSets(_device, 2, descriptorWrites, 0, nullptr);
 
@@ -447,7 +501,7 @@ void VulkanEngine::write_buffer() {
   //  delete[] data;  //for some reason this crashes the program
 }
 
-void VulkanEngine::read_buffer() {
+std::vector<float> VulkanEngine::read_buffer() {
   fmt::print("Reading data from output buffer\n");
   // read the output buffer
   // void* data;
@@ -457,16 +511,19 @@ void VulkanEngine::read_buffer() {
   // std::vector<float> output_data = std::vector<float>(16);
 
   float* output_data = new float[16];
-  for (int i = 0; i < 16; i++) {
-    output_data[i] = -1;
-  }
+
   VK_CHECK(vmaCopyAllocationToMemory(_allocator, _outputBufferAlloc, 0,
                                      output_data, 16 * sizeof(float)));
-  fmt::print("Output data: ");
-  for (int i = 0; i < 16; i++) {
-    fmt::print("{} ", output_data[i]);
-  }
-  fmt::print("\n");
+  // fmt::print("Output data: ");
+  // for (int i = 0; i < 16; i++) {
+  //   fmt::print("{} ", output_data[i]);
+  // }
+  // fmt::print("\n");
+
+  std::vector<float> output_vector(output_data, output_data + 16);
+  // vmaUnmapMemory(_allocator, _outputBufferAlloc);
+  // delete[] data;
+  return output_vector;
 }
 
 void DeletionQueue::push(std::function<void()>&& function) {

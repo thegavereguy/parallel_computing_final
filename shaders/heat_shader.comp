@@ -1,7 +1,7 @@
 #version 450
 #extension GL_EXT_debug_printf : enable
 
-layout(local_size_x = 16) in;
+layout(local_size_x = 8) in;
 
 layout(binding = 0) buffer InputBuffer {
     float input_temp[];
@@ -20,8 +20,9 @@ layout(push_constant) uniform Constants {
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;
+		uint group_idx = gl_WorkGroupID.x;
     //debugPrintfEXT("index: %d ", idx);    
-		debugPrintfEXT("index: %d (grid: %d), current value: %f\n",idx,params.grid, input_temp[idx]);
+		debugPrintfEXT("index: %d (%d) (grid: %d), current value: %f\n",group_idx ,idx,params.grid, input_temp[idx]);
 		//debugPrintfEXT("dt: %f\n", params.dt);
     // Boundary check
      if (idx >= params.grid || idx == 0 || idx == params.grid - 1) {

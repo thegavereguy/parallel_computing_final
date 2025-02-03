@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <glm/mat4x4.hpp>
+#include <vector>
 
 #include "fmt/base.h"
 
@@ -22,8 +23,18 @@ int main(int argc, char **argv) {
   engine.init(true);
   engine.set_costants(0.01 / 5, ((float)1 / 15), 0.05, 16);
   engine.set_initial_conditions(initial_conditions);
-  engine.run_compute(initial_conditions, 5);
+  std::vector<float> output = engine.run_compute(5);
+  // engine.set_initial_conditions(output);
+  // output = engine.run_compute(1);
+  // engine.set_initial_conditions(output);
+  // output = engine.run_compute(1);
   engine.cleanup();
+
+  fmt::print("Output data: ");
+  for (auto val : output) {
+    fmt::print("{} ", val);
+  }
+  fmt::print("\n");
 
   return 0;
 }

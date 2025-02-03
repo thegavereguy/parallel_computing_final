@@ -5,6 +5,8 @@
 #include <framework/vk_types.h>
 #include <vulkan/vulkan_core.h>
 
+#include <vector>
+
 constexpr unsigned int FRAME_OVERLAP = 2;
 class VulkanEngine {
  public:
@@ -21,13 +23,16 @@ class VulkanEngine {
   VkDevice _device;             // Vulkan device for commands
 
   VkQueue _graphicsQueue;
+  VkQueue _computeQueue;
   uint32_t _graphicsQueueFamily;
+  uint32_t _computeQueueFamily;
 
   DeletionQueue _mainDeletionQueue;
 
   VmaAllocator _allocator;
   VkCommandPool _commandPool;
-  VkCommandBuffer _mainCommandBuffer;
+  VkCommandBuffer _mainCommandBufferA;
+  VkCommandBuffer _mainCommandBufferB;
   VkSemaphore _swapchainSemaphore;  // needed so that the render commands wait
                                     // on the swapchain image request.
   VkSemaphore _renderSemaphore;  // used to control presenting the image to the
@@ -35,7 +40,8 @@ class VulkanEngine {
   VkFence _renderFence;  // Allows to wait for the GPU to finish rendering
 
   DescriptorAllocator globalDescriptorAllocator;
-  VkDescriptorSet _bufferDescriptors;
+  VkDescriptorSet _bufferDescriptorsA;
+  VkDescriptorSet _bufferDescriptorsB;
   VkDescriptorSetLayout _computeDescriptorLayout;
 
   VkPipeline _computePipeline;
@@ -69,8 +75,7 @@ class VulkanEngine {
   void run();
 
   void compute();
-  void run_compute(const std::vector<float>& initial_conditions,
-                   uint32_t timesteps);
+  std::vector<float> run_compute(uint32_t timesteps);
   void set_costants(float dt, float dx, float alpha, uint32_t size);
   void set_initial_conditions(std::vector<float>);
 
@@ -83,5 +88,5 @@ class VulkanEngine {
   void init_pipelines();
   void init_background_pipelines();
   void write_buffer();
-  void read_buffer();
+  std::vector<float> read_buffer();
 };
