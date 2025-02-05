@@ -2,14 +2,14 @@
 #include <fmt/base.h>
 #include <fmt/format.h>
 #include <framework/vk_engine.h>
-#include <renderdoc_app.h>
+// #include <renderdoc_app.h>
 #include <time.h>
 
 #include <ctime>
 #include <glm/mat4x4.hpp>
 #include <vector>
 
-RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+// RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 
 int main(int argc, char **argv) {
   const double L       = 1;         // Length of the rod
@@ -48,19 +48,19 @@ int main(int argc, char **argv) {
   engine.set_costants(dt, dx, alpha,
                       n_x);  // needed before the initialization as it sets the
                              // size of the buffers
-  if (void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD)) {
-    pRENDERDOC_GetAPI RENDERDOC_GetAPI =
-        (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
-    int ret =
-        RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
-    fmt::print("RenderDoc API version: {}\n", ret);
-    assert(ret == 1);
-  } else {
-    fmt::print("RenderDoc not found\n");
-  }
-
-  if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
-
+  // if (void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD)) {
+  //   pRENDERDOC_GetAPI RENDERDOC_GetAPI =
+  //       (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+  //   int ret =
+  //       RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+  //   fmt::print("RenderDoc API version: {}\n", ret);
+  //   assert(ret == 1);
+  // } else {
+  //   fmt::print("RenderDoc not found\n");
+  // }
+  //
+  // if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+  //
   engine.init(true);
   engine.set_initial_conditions(initial_conditions);
 
@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   clock_gettime(CLOCK_MONOTONIC, &end);
 
   engine.cleanup();
-  if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
+  // if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
 
   fmt::print("Output data: ");
   // for (auto val : output) {
