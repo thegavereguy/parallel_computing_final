@@ -175,9 +175,8 @@ void VulkanEngine::init_vulkan() {
   // create the vulkan instance
   // abstrancts the creation of the VkInstance
   auto inst_ret =
-      builder
-          .set_app_name("Hello Triangle")
-          //                .request_validation_layers(bUseValidationLayers)
+      builder.set_app_name("Hello Triangle")
+          .request_validation_layers(bUseValidationLayers)
           //                 .enable_validation_layers(true)
           //.add_validation_feature_enable(VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT)
           .enable_extension(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
@@ -217,7 +216,8 @@ void VulkanEngine::init_vulkan() {
   surfaceCreateInfo.pNext = nullptr;
   surfaceCreateInfo.flags = 0;
 
-  vkCreateHeadlessSurfaceEXT(_instance, &surfaceCreateInfo, nullptr, &_surface);
+  VK_CHECK(vkCreateHeadlessSurfaceEXT(_instance, &surfaceCreateInfo, nullptr,
+                                      &_surface));
 
   VkPhysicalDeviceFeatures features{};
   features.shaderFloat64 = VK_TRUE;
@@ -271,7 +271,7 @@ void VulkanEngine::init_vulkan() {
   allocatorInfo.instance               = _instance;
   allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT ||
                         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-  vmaCreateAllocator(&allocatorInfo, &_allocator);
+  VK_CHECK(vmaCreateAllocator(&allocatorInfo, &_allocator));
 
   _mainDeletionQueue.push([&]() { vmaDestroyAllocator(_allocator); });
 }
