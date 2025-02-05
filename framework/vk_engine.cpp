@@ -68,7 +68,8 @@ void VulkanEngine::cleanup() {
 
 void VulkanEngine::compute() { fmt::print("main compute\n"); }
 
-std::vector<float> VulkanEngine::run_compute(uint32_t timesteps) {
+std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
+                                             uint32_t groupCount) {
   fmt::print("Starting Compute Configuration\n");
   // Record command buffer A
   VkCommandBufferBeginInfo beginInfoA{};
@@ -92,7 +93,7 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps) {
     // fmt::print("Dispatching compute shader A\n");
     // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
     // vkCmdDispatch(_mainCommandBufferA, (_gridSize / 512), 1, 1);
-    vkCmdDispatch(_mainCommandBufferA, 128, 1, 1);
+    vkCmdDispatch(_mainCommandBufferA, groupCount, 1, 1);
 
     // Add memory barrier for buffer synchronization
     VkMemoryBarrier barrier{};
@@ -497,9 +498,6 @@ void VulkanEngine::write_buffer() {
   //   fmt::print("{:.2f} ", _initial_conditions[i]);
   // }
   //
-  // VK_CHECK(vmaCopyMemoryToAllocation( _allocator, &initial_conditions,
-  // _inputBufferMemory, 0, initial_conditions.size() * sizeof(float)));
-  // VK_CHECK(vmaMapMemory(_allocator, _inputBufferAlloc, (void**)&data));
   VK_CHECK(vmaCopyMemoryToAllocation(_allocator, _initial_conditions,
                                      _inputBufferAlloc, 0,
                                      _gridSize * sizeof(float)));

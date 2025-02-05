@@ -8,6 +8,6 @@ find_package(Vulkan REQUIRED)
 add_subdirectory(third_party)
 add_subdirectory(framework)
 
-add_subdirectory(src)
+add_subdirectory(apps)
 
 add_subdirectory(shaders)

@@ -77,7 +77,7 @@ class VulkanEngine {
   void run();
 
   void compute();
-  std::vector<float> run_compute(uint32_t timesteps);
+  std::vector<float> run_compute(uint32_t timesteps, uint32_t groupCount);
   void set_costants(float dt, float dx, float alpha, uint32_t size);
   void set_initial_conditions(std::vector<float>);
 

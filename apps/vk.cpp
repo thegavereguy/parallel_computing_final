@@ -12,11 +12,11 @@
 RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 
 int main(int argc, char **argv) {
-  const double L       = 1;           // Length of the rod
-  const double alpha   = 0.000002;    // Thermal diffusivity
-  const double t_final = 0.1;         // Final time
-  const int n_x        = 1024 * 100;  // Number of spatial points
-  const int n_t        = 10000;       // Number of time steps
+  const double L       = 1;         // Length of the rod
+  const double alpha   = 0.000002;  // Thermal diffusivity
+  const double t_final = 0.1;       // Final time
+  const int n_x        = 262144;    // Number of spatial points
+  const int n_t        = 100000;    // Number of time steps
 
   double dx = L / (n_x - 1);
   double dt = t_final / (n_t - 1);
@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 
   initial_conditions.at(0) = 100;
   // initial_conditions.at(5)  = 200;
-  initial_conditions.at(initial_conditions.size() - 1) = 200;
+  initial_conditions.at(n_x - 1) = 200;
 
   engine.set_costants(dt, dx, alpha,
                       n_x);  // needed before the initialization as it sets the
@@ -67,7 +67,8 @@ int main(int argc, char **argv) {
   struct timespec start, end;
   clock_gettime(CLOCK_MONOTONIC, &start);
 
-  std::vector<float> output = engine.run_compute(n_t);
+  std::vector<float> output = engine.run_compute(
+      n_t, n_x / 1024);  // the group show be a multiple of subgroupSize
 
   clock_gettime(CLOCK_MONOTONIC, &end);
 
@@ -78,9 +79,9 @@ int main(int argc, char **argv) {
   // for (auto val : output) {
   //   fmt::print("{} ", val);
   // }
-  fmt::println("{}", output.at(10));
-  fmt::println("{}", output.at(100));
-  fmt::println("{}", output.at(1000));
+  fmt::println("(2)\t{}", output.at(1));
+  fmt::println("(n_x/2)\t{}", output.at(n_x / 2));
+  fmt::println("(n_x-1)\t{}", output.at(n_x - 2));
   fmt::print("\n");
 
   long seconds_ts              = end.tv_sec - start.tv_sec;
