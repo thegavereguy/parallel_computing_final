@@ -1,18 +1,22 @@
+#include <dlfcn.h>
+#include <fmt/base.h>
 #include <fmt/format.h>
 #include <framework/vk_engine.h>
+#include <renderdoc_app.h>
+#include <time.h>
 
-#include <algorithm>
+#include <ctime>
 #include <glm/mat4x4.hpp>
 #include <vector>
 
-#include "fmt/base.h"
+RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 
 int main(int argc, char **argv) {
-  const double L       = 1;          // Length of the rod
-  const double alpha   = 0.000002;   // Thermal diffusivity
-  const double t_final = 1;          // Final time
-  const int n_x        = 1024 * 10;  // Number of spatial points
-  const int n_t        = 1000;       // Number of time steps
+  const double L       = 1;           // Length of the rod
+  const double alpha   = 0.000002;    // Thermal diffusivity
+  const double t_final = 0.1;         // Final time
+  const int n_x        = 1024 * 100;  // Number of spatial points
+  const int n_t        = 10000;       // Number of time steps
 
   double dx = L / (n_x - 1);
   double dt = t_final / (n_t - 1);
@@ -44,18 +48,47 @@ int main(int argc, char **argv) {
   engine.set_costants(dt, dx, alpha,
                       n_x);  // needed before the initialization as it sets the
                              // size of the buffers
+  if (void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD)) {
+    pRENDERDOC_GetAPI RENDERDOC_GetAPI =
+        (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+    int ret =
+        RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+    fmt::print("RenderDoc API version: {}\n", ret);
+    assert(ret == 1);
+  } else {
+    fmt::print("RenderDoc not found\n");
+  }
+
+  if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+
   engine.init(true);
   engine.set_initial_conditions(initial_conditions);
 
+  struct timespec start, end;
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
   std::vector<float> output = engine.run_compute(n_t);
 
-  engine.cleanup();
+  clock_gettime(CLOCK_MONOTONIC, &end);
 
-  // fmt::print("Output data: ");
+  engine.cleanup();
+  if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
+
+  fmt::print("Output data: ");
   // for (auto val : output) {
   //   fmt::print("{} ", val);
   // }
-  // fmt::print("\n");
+  fmt::println("{}", output.at(10));
+  fmt::println("{}", output.at(100));
+  fmt::println("{}", output.at(1000));
+  fmt::print("\n");
+
+  long seconds_ts              = end.tv_sec - start.tv_sec;
+  long nanoseconds_ts          = end.tv_nsec - start.tv_nsec;
+  double elapsed_clock_gettime = seconds_ts + nanoseconds_ts * 1e-9;
+
+  fmt::print("Elapsed time using clock_gettime: {} seconds\n",
+             elapsed_clock_gettime);
 
   return 0;
 }

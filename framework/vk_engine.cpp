@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_events.h>
 #include <SDL_vulkan.h>
 #include <VkBootstrap.h>
 #include <fmt/base.h>
@@ -10,14 +11,11 @@
 #include <framework/vk_types.h>
 #include <vulkan/vulkan_core.h>
 
-#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <utility>
 #include <vector>
-
-#include "SDL_events.h"
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -93,7 +91,8 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps) {
     // Dispatch compute shader
     // fmt::print("Dispatching compute shader A\n");
     // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
-    vkCmdDispatch(_mainCommandBufferA, (_gridSize / 128), 1, 1);
+    // vkCmdDispatch(_mainCommandBufferA, (_gridSize / 512), 1, 1);
+    vkCmdDispatch(_mainCommandBufferA, 128, 1, 1);
 
     // Add memory barrier for buffer synchronization
     VkMemoryBarrier barrier{};
@@ -226,6 +225,7 @@ void VulkanEngine::init_vulkan() {
           .set_minimum_version(1, 2)  // Vulkan 1.2 or higher
           .prefer_gpu_device_type()   // Prefer discrete GPUs
           .add_required_extensions({VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
+                                    VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
                                     VK_KHR_16BIT_STORAGE_EXTENSION_NAME})
           .set_surface(_surface)
           .select()
@@ -247,6 +247,9 @@ void VulkanEngine::init_vulkan() {
   // Get the VkDevice handle used in the rest of a vulkan application
   _device    = vkbDevice.device;
   _chosenGPU = physicalDevice.physical_device;
+
+  _limits     = physicalDevice.properties.limits;
+  _properties = physicalDevice.properties;
 
   fmt::println("Creating graphics queue");
   // get a graphics queue from the device
@@ -489,10 +492,11 @@ void VulkanEngine::write_buffer() {
   // memcpy(data, &_pushConstants, sizeof(_pushConstants));
   // vmaUnmapMemory(_allocator, _inputBufferMemory);
 
-  fmt::print("Initial conditions: ");
-  for (int i = 0; i < _gridSize; i++) {
-    fmt::print("{:.2f} ", _initial_conditions[i]);
-  }
+  // fmt::print("Initial conditions: ");
+  // for (int i = 0; i < _gridSize; i++) {
+  //   fmt::print("{:.2f} ", _initial_conditions[i]);
+  // }
+  //
   // VK_CHECK(vmaCopyMemoryToAllocation( _allocator, &initial_conditions,
   // _inputBufferMemory, 0, initial_conditions.size() * sizeof(float)));
   // VK_CHECK(vmaMapMemory(_allocator, _inputBufferAlloc, (void**)&data));

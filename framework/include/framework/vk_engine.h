@@ -20,7 +20,9 @@ class VulkanEngine {
   VkSurfaceKHR _surface;  // this is going to be a headless surface provided by
                           // the extension VK_EXT_headless_surface
   VkPhysicalDevice _chosenGPU;  // GPU chosen as the default device
-  VkDevice _device;             // Vulkan device for commands
+  VkPhysicalDeviceLimits _limits;
+  VkPhysicalDeviceProperties _properties;
+  VkDevice _device;  // Vulkan device for commands
 
   VkQueue _graphicsQueue;
   VkQueue _computeQueue;
