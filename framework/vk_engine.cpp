@@ -216,11 +216,13 @@ void VulkanEngine::init_vulkan() {
   surfaceCreateInfo.pNext = nullptr;
   surfaceCreateInfo.flags = 0;
 
+  fmt::print("Creating headless surface\n");
   VK_CHECK(vkCreateHeadlessSurfaceEXT(_instance, &surfaceCreateInfo, nullptr,
                                       &_surface));
 
   VkPhysicalDeviceFeatures features{};
   features.shaderFloat64 = VK_TRUE;
+  fmt::print("Selecting GPU\n");
   auto physicalDevice =
       selector
           .set_minimum_version(1, 2)  // Vulkan 1.2 or higher
