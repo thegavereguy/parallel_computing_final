@@ -402,7 +402,7 @@ void VulkanEngine::init_background_pipelines() {
   fmt::print("Loading compute shader\n");
 
   VkShaderModule shaderModule;
-  if (!vkutil::load_shader_module("../../../shaders/heat_shader.spv", _device,
+  if (!vkutil::load_shader_module("../shaders/heat_shader.spv", _device,
                                   &shaderModule)) {
     fmt::print("Error when building the compute shader \n");
   }
