@@ -445,6 +445,7 @@ void VulkanEngine::init_buffers() {
   vmaInputAllocCI.flags =
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   vmaInputAllocCI.memoryTypeBits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+  fmt::print("Creating input buffer\n");
   VK_CHECK(vmaCreateBuffer(_allocator, &inputBufferInfo, &vmaInputAllocCI,
                            &_inputBuffer, &_inputBufferAlloc, nullptr));
   // create the output buffer
@@ -458,6 +459,7 @@ void VulkanEngine::init_buffers() {
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   vmaOutputAllocCI.memoryTypeBits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 
+  fmt::print("Creating output buffer\n");
   VK_CHECK(vmaCreateBuffer(_allocator, &outputBufferInfo, &vmaOutputAllocCI,
                            &_outputBuffer, &_outputBufferAlloc, nullptr));
 
