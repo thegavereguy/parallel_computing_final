@@ -10,8 +10,7 @@ Include(FetchContent)
 
 add_subdirectory(third_party)
 add_subdirectory(framework)
-
 add_subdirectory(apps)
-
 add_subdirectory(shaders)
+add_subdirectory(src)
 

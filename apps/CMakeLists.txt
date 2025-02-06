@@ -5,7 +5,7 @@ target_link_libraries(vk PUBLIC fmt)
 # custom target for OpenMP
 add_executable(openmp openmp.cpp)
 find_package(OpenMP REQUIRED)
-target_link_libraries(openmp PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(openmp PUBLIC OpenMP::OpenMP_CXX fmt test_lib)
 
 add_executable(mpi mpi.cpp)
 find_package(MPI REQUIRED)

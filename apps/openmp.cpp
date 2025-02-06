@@ -1,3 +1,4 @@
+#include <lib/test.h>
 #include <omp.h>
 
 #include <iostream>
@@ -7,5 +8,7 @@ int main() {
   {
     std::cout << "Hello, world!" << std::endl;
   }
+
+  test();
   return 0;
 }

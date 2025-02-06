@@ -1,6 +1,3 @@
-#include <SDL.h>
-#include <SDL_events.h>
-#include <SDL_vulkan.h>
 #include <VkBootstrap.h>
 #include <fmt/base.h>
 #include <fmt/core.h>
