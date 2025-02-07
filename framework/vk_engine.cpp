@@ -9,6 +9,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <utility>
@@ -175,7 +176,7 @@ void VulkanEngine::init_vulkan() {
   auto inst_ret =
       builder.set_app_name("Hello Triangle")
           .request_validation_layers(bUseValidationLayers)
-          //                 .enable_validation_layers(true)
+          .enable_validation_layers(true)
           //.add_validation_feature_enable(VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT)
           .enable_extension(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
           .use_default_debug_messenger()
@@ -269,8 +270,7 @@ void VulkanEngine::init_vulkan() {
   allocatorInfo.physicalDevice         = _chosenGPU;
   allocatorInfo.device                 = _device;
   allocatorInfo.instance               = _instance;
-  allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT ||
-                        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+  allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
   VK_CHECK(vmaCreateAllocator(&allocatorInfo, &_allocator));
 
   _mainDeletionQueue.push([&]() { vmaDestroyAllocator(_allocator); });
@@ -438,7 +438,9 @@ void VulkanEngine::init_buffers() {
   // create the input buffer
   fmt::print("Creating storage buffers\n");
   VkBufferCreateInfo inputBufferInfo = vkinit::buffer_create_info(
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, sizeof(float) * _gridSize);
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
+      sizeof(float) * _gridSize);
 
   VmaAllocationCreateInfo vmaInputAllocCI = {};
   vmaInputAllocCI.usage                   = VMA_MEMORY_USAGE_AUTO;
@@ -446,8 +448,13 @@ void VulkanEngine::init_buffers() {
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   vmaInputAllocCI.memoryTypeBits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
   fmt::print("Creating input buffer\n");
-  VK_CHECK(vmaCreateBuffer(_allocator, &inputBufferInfo, &vmaInputAllocCI,
-                           &_inputBuffer, &_inputBufferAlloc, nullptr));
+  auto res = vmaCreateBuffer(_allocator, &inputBufferInfo, &vmaInputAllocCI,
+                             &_inputBuffer, &_inputBufferAlloc, nullptr);
+
+  if (_inputBuffer == NULL) {
+    fmt::print("Input Buffer creation failed\n");
+    return;
+  }
   // create the output buffer
   // vmaAllocCI.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
   VkBufferCreateInfo outputBufferInfo = vkinit::buffer_create_info(
@@ -461,7 +468,10 @@ void VulkanEngine::init_buffers() {
   fmt::print("Creating output buffer\n");
   VK_CHECK(vmaCreateBuffer(_allocator, &outputBufferInfo, &vmaOutputAllocCI,
                            &_outputBuffer, &_outputBufferAlloc, nullptr));
-
+  if (_outputBuffer == NULL) {
+    fmt::print("Output Buffer creation failed\n");
+    return;
+  }
   // vmaBindBufferMemory(_allocator, _inputBufferAlloc, _inputBuffer);
   //  add the buffers to the deletion queue
   _mainDeletionQueue.push([&]() {
