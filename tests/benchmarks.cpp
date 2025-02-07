@@ -26,6 +26,36 @@ TEST_CASE("Sequential solution", "[seq]") {
     delete[] input;
     delete[] output;
   };
+  BENCHMARK_ADVANCED("Par2 inner")(Catch::Benchmark::Chronometer meter) {
+    Conditions conditions = {1, 0.02, 1, 262144, 10000};
+
+    float* input              = new float[conditions.n_x];
+    input[0]                  = 100;
+    input[conditions.n_x - 1] = 200;
+    float* output             = new float[conditions.n_x];
+
+    meter.measure([conditions, input, output] {
+      return parallel2_inner(conditions, input, output);
+    });
+
+    delete[] input;
+    delete[] output;
+  };
+  BENCHMARK_ADVANCED("Par4 inner")(Catch::Benchmark::Chronometer meter) {
+    Conditions conditions = {1, 0.02, 1, 262144, 10000};
+
+    float* input              = new float[conditions.n_x];
+    input[0]                  = 100;
+    input[conditions.n_x - 1] = 200;
+    float* output             = new float[conditions.n_x];
+
+    meter.measure([conditions, input, output] {
+      return parallel2_inner(conditions, input, output);
+    });
+
+    delete[] input;
+    delete[] output;
+  };
 }
 
 class PartialCSVReporter : public Catch::StreamingReporterBase {

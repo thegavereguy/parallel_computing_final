@@ -12,11 +12,11 @@
 // RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 
 int main(int argc, char **argv) {
-  const double L       = 1;         // Length of the rod
-  const double alpha   = 0.000002;  // Thermal diffusivity
-  const double t_final = 0.1;       // Final time
-  const int n_x        = 262144;    // Number of spatial points
-  const int n_t        = 100000;    // Number of time steps
+  const double L       = 1;          // Length of the rod
+  const double alpha   = 0.0000002;  // Thermal diffusivity
+  const double t_final = 0.1;        // Final time
+  const int n_x        = 1024 * 8;   // Number of spatial points
+  const int n_t        = 1000;       // Number of time steps
 
   double dx = L / (n_x - 1);
   double dt = t_final / (n_t - 1);
