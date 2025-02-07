@@ -13,4 +13,4 @@ add_subdirectory(framework)
 add_subdirectory(apps)
 add_subdirectory(shaders)
 add_subdirectory(src)
-
+add_subdirectory(tests)
