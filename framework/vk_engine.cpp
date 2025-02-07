@@ -15,6 +15,7 @@
 #include <vector>
 
 #define VMA_IMPLEMENTATION
+#define VMA_DEBUG_INITIALIZE_ALLOCATIONS 1
 #include <vk_mem_alloc.h>
 
 constexpr bool bUseValidationLayers = true;
@@ -437,8 +438,7 @@ void VulkanEngine::init_buffers() {
   // create the input buffer
   fmt::print("Creating storage buffers\n");
   VkBufferCreateInfo inputBufferInfo = vkinit::buffer_create_info(
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      sizeof(float) * _gridSize);
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, sizeof(float) * _gridSize);
 
   VmaAllocationCreateInfo vmaInputAllocCI = {};
   vmaInputAllocCI.usage                   = VMA_MEMORY_USAGE_AUTO;
@@ -451,8 +451,7 @@ void VulkanEngine::init_buffers() {
   // create the output buffer
   // vmaAllocCI.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
   VkBufferCreateInfo outputBufferInfo = vkinit::buffer_create_info(
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-      sizeof(float) * _gridSize);
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, sizeof(float) * _gridSize);
   VmaAllocationCreateInfo vmaOutputAllocCI = {};
   vmaOutputAllocCI.usage                   = VMA_MEMORY_USAGE_AUTO;
   vmaOutputAllocCI.flags =
