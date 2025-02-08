@@ -21,7 +21,7 @@
 
 // macro that takes bUseValidationLayers as a parameter and prints only if true
 #define VALIDATION_MESSAGE(message) \
-  if (bUseValidationLayers) {       \
+  if (_useValidationLayers) {       \
     fmt::print(message);            \
   }
 

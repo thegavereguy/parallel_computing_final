@@ -26,7 +26,8 @@ VulkanEngine& VulkanEngine::Get() { return *loadedEngine; }
 void VulkanEngine::init(bool bEnableValidationLayers) {
   // only one engine initialization is allowed with the application.
   assert(loadedEngine == nullptr);
-  loadedEngine = this;
+  loadedEngine               = this;
+  this->_useValidationLayers = bEnableValidationLayers;
 
   // We initialize SDL and create a window with it.
   init_vulkan();
@@ -170,8 +171,8 @@ void VulkanEngine::init_vulkan() {
   // abstrancts the creation of the VkInstance
   auto inst_ret =
       builder.set_app_name("Hello Triangle")
-          .request_validation_layers(bUseValidationLayers)
-          .enable_validation_layers(bUseValidationLayers)
+          .request_validation_layers(_useValidationLayers)
+          .enable_validation_layers(_useValidationLayers)
           //.add_validation_feature_enable(VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT)
           .enable_extension(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
           .use_default_debug_messenger()
@@ -231,7 +232,7 @@ void VulkanEngine::init_vulkan() {
   VALIDATION_MESSAGE("Selected GPU: \n");
   VALIDATION_MESSAGE("Available extensions:\n");
 
-  if (bUseValidationLayers) {
+  if (_useValidationLayers) {
     for (auto ext : physicalDevice.get_extensions()) {
       fmt::print("{}\n", ext);
     }
@@ -256,7 +257,7 @@ void VulkanEngine::init_vulkan() {
   _graphicsQueueFamily =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
-  if (bUseValidationLayers)
+  if (_useValidationLayers)
     fmt::println("Selected graphics queue: {}", _graphicsQueueFamily);
   // _computeQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
   // _computeQueueFamily =

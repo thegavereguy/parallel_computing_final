@@ -13,7 +13,7 @@ class VulkanEngine {
   bool _isInitialized{false};
   int _frameNumber{0};
   bool stop_rendering{false};
-  bool bUseValidationLayers;
+  bool _useValidationLayers;
 
   VkInstance _instance;                       // Vulkan library handle
   VkDebugUtilsMessengerEXT _debug_messenger;  // Vulkan debug output handle
