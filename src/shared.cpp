@@ -21,6 +21,7 @@ void parallel2_inner(Conditions conditions, float* input, float* output) {
   output[conditions.n_x - 1] = input[conditions.n_x - 1];
 
   for (int i = 0; i < conditions.n_t; i++) {
+#pragma omp parallel for num_threads(2)
     for (int j = 1; j < conditions.n_x - 1; j++) {
       output[j] = input[j] + conditions.alpha *
                                  (input[j + 1] - 2 * input[j] + input[j - 1]);

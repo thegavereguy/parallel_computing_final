@@ -34,12 +34,6 @@ int main(int argc, char **argv) {
   VulkanEngine engine;
 
   std::vector<float> initial_conditions = std::vector<float>(n_x);
-  // std::fill(initial_conditions.rbegin(), initial_conditions.rend(), 0);
-  //  fill with linear values plus some noise
-  for (int i = 0; i < n_x; i++) {
-    // initial_conditions[i] = 10000 * (1 - i / (n_x - 1.0)) + 200 * (rand() %
-    // 100) / 100.0;
-  }
 
   initial_conditions.at(0) = 100;
   // initial_conditions.at(5)  = 200;
