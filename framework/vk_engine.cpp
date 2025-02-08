@@ -19,8 +19,6 @@
 #define VMA_DEBUG_INITIALIZE_ALLOCATIONS 1
 #include <vk_mem_alloc.h>
 
-constexpr bool bUseValidationLayers = true;
-
 VulkanEngine* loadedEngine = nullptr;
 
 VulkanEngine& VulkanEngine::Get() { return *loadedEngine; }
@@ -43,7 +41,7 @@ void VulkanEngine::init(bool bEnableValidationLayers) {
 void VulkanEngine::cleanup() {
   if (_isInitialized) {
     // changing the order of distructions can cause errors
-    fmt::print("Cleaning up Vulkan Engine\n");
+    VALIDATION_MESSAGE("Clealkdjfning up Vulkan Engine\n");
     vkDeviceWaitIdle(_device);
 
     vkDestroyCommandPool(_device, _commandPool, nullptr);
@@ -65,11 +63,9 @@ void VulkanEngine::cleanup() {
   }
 }
 
-void VulkanEngine::compute() { fmt::print("main compute\n"); }
-
 std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
                                              uint32_t groupCount) {
-  fmt::print("Starting Compute Configuration\n");
+  VALIDATION_MESSAGE("Starting Compute Configuration\n");
   // Record command buffer A
   VkCommandBufferBeginInfo beginInfoA{};
   beginInfoA.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -89,7 +85,6 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
                             nullptr);
 
     // Dispatch compute shader
-    // fmt::print("Dispatching compute shader A\n");
     // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
     // vkCmdDispatch(_mainCommandBufferA, (_gridSize / 512), 1, 1);
     vkCmdDispatch(_mainCommandBufferA, groupCount, 1, 1);
@@ -176,7 +171,7 @@ void VulkanEngine::init_vulkan() {
   auto inst_ret =
       builder.set_app_name("Hello Triangle")
           .request_validation_layers(bUseValidationLayers)
-          .enable_validation_layers(true)
+          .enable_validation_layers(bUseValidationLayers)
           //.add_validation_feature_enable(VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT)
           .enable_extension(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
           .use_default_debug_messenger()
@@ -185,7 +180,7 @@ void VulkanEngine::init_vulkan() {
 
   vkb::Instance vkb_inst = inst_ret.value();
 
-  fmt::print("Vulkan instance created\n");
+  VALIDATION_MESSAGE("Vulkan instance created\n");
   // store the instance in the engine state
   _instance        = vkb_inst.instance;
   _debug_messenger = vkb_inst.debug_messenger;
@@ -197,7 +192,7 @@ void VulkanEngine::init_vulkan() {
       .dynamicRendering = false,
   };
 
-  fmt::println("Select a GPU");
+  VALIDATION_MESSAGE("Selecting GPU\n");
   // use vkbootstrap to select a gpu.
   // We want a gpu that can write to the SDL surface and supports vulkan 1.3
   // with the correct features
@@ -215,13 +210,13 @@ void VulkanEngine::init_vulkan() {
   surfaceCreateInfo.pNext = nullptr;
   surfaceCreateInfo.flags = 0;
 
-  fmt::print("Creating headless surface\n");
+  VALIDATION_MESSAGE("Creating headless surface\n");
   VK_CHECK(vkCreateHeadlessSurfaceEXT(_instance, &surfaceCreateInfo, nullptr,
                                       &_surface));
 
   VkPhysicalDeviceFeatures features{};
   features.shaderFloat64 = VK_TRUE;
-  fmt::print("Selecting GPU\n");
+  VALIDATION_MESSAGE("Selecting GPU\n");
   auto physicalDevice =
       selector
           .set_minimum_version(1, 2)  // Vulkan 1.2 or higher
@@ -233,11 +228,13 @@ void VulkanEngine::init_vulkan() {
           .select()
           .value();
 
-  fmt::println("Selected GPU: {}", physicalDevice.name);
-  fmt::println("Available extensions:");
+  VALIDATION_MESSAGE("Selected GPU: \n");
+  VALIDATION_MESSAGE("Available extensions:\n");
 
-  for (auto ext : physicalDevice.get_extensions()) {
-    fmt::println("{}", ext);
+  if (bUseValidationLayers) {
+    for (auto ext : physicalDevice.get_extensions()) {
+      fmt::print("{}\n", ext);
+    }
   }
 
   // create the final vulkan device
@@ -253,19 +250,22 @@ void VulkanEngine::init_vulkan() {
   _limits     = physicalDevice.properties.limits;
   _properties = physicalDevice.properties;
 
-  fmt::println("Creating graphics queue");
+  VALIDATION_MESSAGE("Creating graphics queue\n");
   // get a graphics queue from the device
   _graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
   _graphicsQueueFamily =
       vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
-  fmt::println("Selected graphics queue: {}", _graphicsQueueFamily);
+
+  if (bUseValidationLayers)
+    fmt::println("Selected graphics queue: {}", _graphicsQueueFamily);
   // _computeQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
   // _computeQueueFamily =
   //     vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
   // fmt::println("Selected compute queue: {}", _computeQueueFamily);
 
   // initialize the memory allocator
-  fmt::print("Creating VMA Allocator\n");
+  VALIDATION_MESSAGE("Creating VMA Allocator\n");
+
   VmaAllocatorCreateInfo allocatorInfo = {};
   allocatorInfo.physicalDevice         = _chosenGPU;
   allocatorInfo.device                 = _device;
@@ -279,7 +279,7 @@ void VulkanEngine::init_vulkan() {
 void VulkanEngine::init_commands() {
   // create a command pool for commands submitted to the graphics queue.
   // we also want the pool to allow for resetting of individual command buffers
-  fmt::print("Creating command pool\n");
+  VALIDATION_MESSAGE("Creating command pool\n");
 
   VkCommandPoolCreateInfo commandPoolInfo = vkinit::command_pool_create_info(
       _graphicsQueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
@@ -287,7 +287,7 @@ void VulkanEngine::init_commands() {
   VK_CHECK(
       vkCreateCommandPool(_device, &commandPoolInfo, nullptr, &_commandPool));
 
-  fmt::print("Allocating command buffer \n");
+  VALIDATION_MESSAGE("Allocating command buffer\n");
   // allocate the default command buffer that we will use for rendering
   VkCommandBufferAllocateInfo cmdAllocInfo =
       vkinit::command_buffer_allocate_info(_commandPool, 1);
@@ -382,7 +382,8 @@ void VulkanEngine::init_descriptors() {
 void VulkanEngine::init_pipelines() { init_background_pipelines(); };
 
 void VulkanEngine::init_background_pipelines() {
-  fmt::print("Creating compute pipeline layout\n");
+  VALIDATION_MESSAGE("Creating compute pipeline layout\n");
+
   VkPushConstantRange pushConstantRange{};
   pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
   pushConstantRange.offset     = 0;
@@ -400,12 +401,13 @@ void VulkanEngine::init_background_pipelines() {
   VK_CHECK(vkCreatePipelineLayout(_device, &pipelineLayoutCI, nullptr,
                                   &pipelineLayout));
 
-  fmt::print("Loading compute shader\n");
+  VALIDATION_MESSAGE("Loading compute shader\n");
 
   VkShaderModule shaderModule;
   if (!vkutil::load_shader_module("../shaders/heat_shader.spv", _device,
                                   &shaderModule)) {
-    fmt::print("Error when building the compute shader \n");
+    VALIDATION_MESSAGE("Error when building the compute shader\n");
+    return;
   }
 
   VkPipelineShaderStageCreateInfo shaderStageCI{};
@@ -421,7 +423,7 @@ void VulkanEngine::init_background_pipelines() {
   computePipelineCI.layout = pipelineLayout;
   computePipelineCI.stage  = shaderStageCI;
 
-  fmt::print("Creating compute pipeline\n");
+  VALIDATION_MESSAGE("Creating compute pipeline\n");
   VK_CHECK(vkCreateComputePipelines(_device, VK_NULL_HANDLE, 1,
                                     &computePipelineCI, nullptr,
                                     &_computePipeline));
@@ -436,7 +438,8 @@ void VulkanEngine::init_background_pipelines() {
 
 void VulkanEngine::init_buffers() {
   // create the input buffer
-  fmt::print("Creating storage buffers\n");
+  VALIDATION_MESSAGE("Creating storage buffers\n");
+
   VkBufferCreateInfo inputBufferInfo = vkinit::buffer_create_info(
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
@@ -447,12 +450,14 @@ void VulkanEngine::init_buffers() {
   vmaInputAllocCI.flags =
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   vmaInputAllocCI.memoryTypeBits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-  fmt::print("Creating input buffer\n");
+
+  VALIDATION_MESSAGE("Creating input buffer\n");
+
   auto res = vmaCreateBuffer(_allocator, &inputBufferInfo, &vmaInputAllocCI,
                              &_inputBuffer, &_inputBufferAlloc, nullptr);
 
   if (_inputBuffer == NULL) {
-    fmt::print("Input Buffer creation failed\n");
+    VALIDATION_MESSAGE("Creating input buffer failed\n");
     return;
   }
   // create the output buffer
@@ -465,11 +470,11 @@ void VulkanEngine::init_buffers() {
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   vmaOutputAllocCI.memoryTypeBits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 
-  fmt::print("Creating output buffer\n");
+  VALIDATION_MESSAGE("Creating output buffer\n");
   VK_CHECK(vmaCreateBuffer(_allocator, &outputBufferInfo, &vmaOutputAllocCI,
                            &_outputBuffer, &_outputBufferAlloc, nullptr));
   if (_outputBuffer == NULL) {
-    fmt::print("Output Buffer creation failed\n");
+    VALIDATION_MESSAGE("output buffer creation failed\n");
     return;
   }
   // vmaBindBufferMemory(_allocator, _inputBufferAlloc, _inputBuffer);
@@ -496,18 +501,14 @@ void VulkanEngine::set_initial_conditions(std::vector<float> initial) {
   _gridSize = initial.size();
 }
 void VulkanEngine::write_buffer() {
-  fmt::print("Writing data into input buffer\n");
+  VALIDATION_MESSAGE("Writing data into input buffer\n");
+
   // write the initial conditions to the input buffer
   // void* data;
   // vmaMapMemory(_allocator, _inputBufferMemory, &data);
   // memcpy(data, &_pushConstants, sizeof(_pushConstants));
   // vmaUnmapMemory(_allocator, _inputBufferMemory);
 
-  // fmt::print("Initial conditions: ");
-  // for (int i = 0; i < _gridSize; i++) {
-  //   fmt::print("{:.2f} ", _initial_conditions[i]);
-  // }
-  //
   VK_CHECK(vmaCopyMemoryToAllocation(_allocator, _initial_conditions,
                                      _inputBufferAlloc, 0,
                                      _gridSize * sizeof(float)));
@@ -518,7 +519,7 @@ void VulkanEngine::write_buffer() {
 }
 
 std::vector<float> VulkanEngine::read_buffer() {
-  fmt::print("Reading data from output buffer\n");
+  VALIDATION_MESSAGE("Reading data from output buffer\n");
   // read the output buffer
   // void* data;
   // vmaMapMemory(_allocator, _outputBufferMemory, &data);
@@ -543,7 +544,6 @@ void DeletionQueue::push(std::function<void()>&& function) {
 void DeletionQueue::flush() {
   // interante in backorder, falling the functions
   for (auto f = deletors.rbegin(); f != deletors.rend(); f++) {
-    fmt::print("Deleting from queue\n");
     (*f)();
   }
   deletors.clear();

@@ -19,6 +19,12 @@
     }                                        \
   } while (0)
 
+// macro that takes bUseValidationLayers as a parameter and prints only if true
+#define VALIDATION_MESSAGE(message) \
+  if (bUseValidationLayers) {       \
+    fmt::print(message);            \
+  }
+
 struct DeletionQueue {
   std::deque<std::function<void()>> deletors;
   void push(std::function<void()>&& function);
