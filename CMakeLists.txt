@@ -3,14 +3,19 @@ project(HelloTriangle CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-#download the vulkan sdk and execute the script to set the environment variables
 Include(FetchContent)
 
-
-
 add_subdirectory(third_party)
-add_subdirectory(framework)
+
+#check if the environment variable BUILD_VULKAN is set, if yes, build the vulkan backend
+if(DEFINED ENV{BUILD_VULKAN} AND "$ENV{BUILD_VULKAN}" STREQUAL "true")
+	Message("Building Vulkan backend")
+	add_subdirectory(framework)
+else()
+	Message("Skipping Vulkan backend")
+	add_subdirectory(shaders)
+endif()
+
 add_subdirectory(apps)
-add_subdirectory(shaders)
 add_subdirectory(src)
 add_subdirectory(tests)
