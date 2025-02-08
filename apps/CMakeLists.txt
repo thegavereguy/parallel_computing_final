@@ -1,6 +1,9 @@
-add_executable(vk vk.cpp)
-target_link_libraries(vk PUBLIC framework)
-target_link_libraries(vk PUBLIC fmt)
+
+if(DEFINED ENV{BUILD_VULKAN} AND "$ENV{BUILD_VULKAN}" STREQUAL "true")
+	add_executable(vk vk.cpp)
+	target_link_libraries(vk PUBLIC framework)
+	target_link_libraries(vk PUBLIC fmt)
+endif()
 
 # custom target for OpenMP
 add_executable(openmp openmp.cpp)

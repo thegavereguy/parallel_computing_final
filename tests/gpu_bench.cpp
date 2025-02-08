@@ -1,6 +1,6 @@
 #include <fmt/base.h>
 #include <framework/vk_engine.h>
-#include <lib/shared.h>
+#include <lib/common.h>
 
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/benchmark/catch_chronometer.hpp>
@@ -12,86 +12,6 @@
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 #include <catch2/reporters/catch_reporter_streaming_base.hpp>
 
-TEST_CASE("Sequential solution", "[seq]") {
-  char* name = new char[100];
-  for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
-
-    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
-      float* input              = new float[conditions.n_x];
-      input[0]                  = 100;
-      input[conditions.n_x - 1] = 200;
-      float* output             = new float[conditions.n_x];
-
-      meter.measure([conditions, input, output] {
-        return sequential(conditions, input, output);
-      });
-
-      delete[] input;
-      delete[] output;
-    };
-  }
-}
-TEST_CASE("Parallel 2 inner solution", "[par2]") {
-  char* name = new char[100];
-  for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
-
-    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
-      float* input              = new float[conditions.n_x];
-      input[0]                  = 100;
-      input[conditions.n_x - 1] = 200;
-      float* output             = new float[conditions.n_x];
-
-      meter.measure([conditions, input, output] {
-        return parallel2_inner(conditions, input, output);
-      });
-
-      delete[] input;
-      delete[] output;
-    };
-  }
-}
-TEST_CASE("Parallel 4 inner solution", "[par4]") {
-  char* name = new char[100];
-  for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
-
-    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
-      float* input              = new float[conditions.n_x];
-      input[0]                  = 100;
-      input[conditions.n_x - 1] = 200;
-      float* output             = new float[conditions.n_x];
-
-      meter.measure([conditions, input, output] {
-        return parallel4_inner(conditions, input, output);
-      });
-
-      delete[] input;
-      delete[] output;
-    };
-  }
-}
-TEST_CASE("Parallel 8 inner solution", "[par8]") {
-  char* name = new char[100];
-  for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
-
-    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
-      float* input              = new float[conditions.n_x];
-      input[0]                  = 100;
-      input[conditions.n_x - 1] = 200;
-      float* output             = new float[conditions.n_x];
-
-      meter.measure([conditions, input, output] {
-        return parallel8_inner(conditions, input, output);
-      });
-
-      delete[] input;
-      delete[] output;
-    };
-  }
-}
 TEST_CASE("GPU1 solution", "[gpu1]") {
   char* name = new char[100];
 
