@@ -12,6 +12,8 @@ target_link_libraries(openmp PUBLIC  fmt shared)
 
 
 if(DEFINED ENV{BUILD_MPI} AND "$ENV{BUILD_MPI}" STREQUAL "true")
+	message("building MPI solution")
+
 	add_executable(mpi mpi.cpp)
 	find_package(MPI REQUIRED)
 	target_include_directories(mpi SYSTEM PRIVATE ${MPI_INCLUDE_PATH})
@@ -25,4 +27,17 @@ if(DEFINED ENV{BUILD_MPI} AND "$ENV{BUILD_MPI}" STREQUAL "true")
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		COMMENT "Running mpi target with mpirun"
 	)
+else()
+	message("Skipping MPI solution")
+endif()
+
+if(DEFINED ENV{BUILD_ACC} AND "$ENV{BUILD_ACC}" STREQUAL "true")
+	message("building OpenACC solution")
+
+	find_package(OpenACC REQUIRED)
+
+	add_executable(openacc openacc.cpp)
+	target_link_libraries(openacc PUBLIC fmt)
+	target_link_libraries(openacc PUBLIC OpenACC::OpenACC_CXX)
+	target_compile_options(openacc PUBLIC -fopenacc )
 endif()

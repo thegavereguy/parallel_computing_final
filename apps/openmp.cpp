@@ -1,7 +1,6 @@
+#include <fmt/base.h>
 #include <fmt/core.h>
 #include <lib/shared.h>
-
-#include "fmt/base.h"
 
 int main() {
   Conditions conditions = {1, 0.02, 1, 262144, 10000};

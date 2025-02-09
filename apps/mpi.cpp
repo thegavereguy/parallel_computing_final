@@ -1,50 +1,102 @@
 #include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <iostream>
+#define NX 16        // Total number of grid points
+#define NT 30        // Number of time steps
+#define ALPHA 0.5    // Diffusion coefficient
+#define DX 1.0 / NX  // Grid spacing
+#define DT 0.1 / NT  // Time step size
 
-int main(int argc, char** argv) {
-  // Initialize MPI environment
-  MPI_Init(&argc, &argv);
+void heat_equation(double *u, double *u_new, int local_nx, double lambda,
+                   int rank, int size) {
+  MPI_Request request[4];  // Non-blocking send/receive requests
 
-  // Get the number of processes and rank of the current process
-  int world_size, world_rank;
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-  // Get the processor name
-  char processor_name[MPI_MAX_PROCESSOR_NAME];
-  int name_len;
-  MPI_Get_processor_name(processor_name, &name_len);
-
-  // Simple point-to-point communication example
-  if (world_size < 2) {
-    std::cerr << "This program requires at least 2 processes\n";
-    MPI_Abort(MPI_COMM_WORLD, 1);
-  }
-
-  const int MAX_NUMBERS = 100;
-  int numbers[MAX_NUMBERS];
-
-  if (world_rank == 0) {
-    // Sender process
-    for (int i = 0; i < MAX_NUMBERS; i++) {
-      numbers[i] = i;
+  for (int t = 0; t < NT; t++) {
+    // Non-blocking communication: exchange ghost cells
+    if (rank > 0) {
+      MPI_Isend(&u[1], 1, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD,
+                &request[0]);  // Send left boundary
+      MPI_Irecv(&u[0], 1, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD,
+                &request[1]);  // Receive left neighbor
     }
-    std::cout << "Process 0 is sending data to Process 1\n";
-    MPI_Send(numbers, MAX_NUMBERS, MPI_INT, 1, 0, MPI_COMM_WORLD);
-  } else if (world_rank == 1) {
-    // Receiver process
-    MPI_Recv(numbers, MAX_NUMBERS, MPI_INT, 0, 0, MPI_COMM_WORLD,
-             MPI_STATUS_IGNORE);
-    std::cout << "Process 1 received data. First number: " << numbers[0]
-              << ", Last number: " << numbers[MAX_NUMBERS - 1] << std::endl;
+    if (rank < size - 1) {
+      MPI_Isend(&u[local_nx], 1, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD,
+                &request[2]);  // Send right boundary
+      MPI_Irecv(&u[local_nx + 1], 1, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD,
+                &request[3]);  // Receive right neighbor
+    }
+
+    // Compute internal grid points (excluding ghost cells)
+    for (int i = 2; i < local_nx; i++) {
+      u_new[i] = u[i] + lambda * (u[i - 1] - 2.0 * u[i] + u[i + 1]);
+    }
+
+    if (rank > 0) MPI_Waitall(2, request, MPI_STATUSES_IGNORE);
+    if (rank < size - 1) MPI_Waitall(2, &request[2], MPI_STATUSES_IGNORE);
+
+    // Compute boundary points after receiving ghost cells
+    u_new[1] = u[1] + lambda * (u[0] - 2.0 * u[1] + u[2]);
+    u_new[local_nx] =
+        u[local_nx] +
+        lambda * (u[local_nx - 1] - 2.0 * u[local_nx] + u[local_nx + 1]);
+
+    // Swap pointers
+    double *temp = u;
+    u            = u_new;
+    u_new        = temp;
+  }
+}
+
+int main(int argc, char **argv) {
+  int rank, size;
+  MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  // Local domain size per process (including ghost cells)
+  int local_nx = NX / size;
+  if (rank == size - 1)
+    local_nx +=
+        NX % size;  // Last process gets extra points if NX is not divisible
+
+  // Allocate arrays (with extra ghost cells)
+  double *u     = (double *)malloc((local_nx + 2) * sizeof(double));
+  double *u_new = (double *)malloc((local_nx + 2) * sizeof(double));
+
+  // Initialize local grid
+  for (int i = 1; i <= local_nx; i++) {
+    int global_i =
+        rank * (NX / size) + i;  // Convert local index to global index
+    u[i] = 0;
+  }
+  u[0]            = 100;
+  u[local_nx - 1] = 200;
+
+  double lambda     = ALPHA * DT / (DX * DX);
+  double start_time = MPI_Wtime();
+
+  heat_equation(u, u_new, local_nx, lambda, rank, size);
+
+  double end_time = MPI_Wtime();
+
+  // Gather results to rank 0
+  if (rank == 0) {
+    double *global_u = (double *)malloc(NX * sizeof(double));
+    MPI_Gather(&u[1], local_nx, MPI_DOUBLE, global_u, local_nx, MPI_DOUBLE, 0,
+               MPI_COMM_WORLD);
+    for (int i = 0; i < NX; i++) {
+      printf("%f ", global_u[i]);
+    }
+    printf("Execution Time: %f seconds\n", end_time - start_time);
+    free(global_u);
+  } else {
+    MPI_Gather(&u[1], local_nx, MPI_DOUBLE, NULL, local_nx, MPI_DOUBLE, 0,
+               MPI_COMM_WORLD);
   }
 
-  // Print basic information from all processes
-  std::cout << "Process " << world_rank << " out of " << world_size
-            << " on processor " << processor_name << std::endl;
-
-  // Finalize MPI environment
+  free(u);
+  free(u_new);
   MPI_Finalize();
   return 0;
 }
