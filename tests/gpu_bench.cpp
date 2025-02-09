@@ -32,12 +32,92 @@ TEST_CASE("GPU1 solution", "[gpu1]") {
       engine.set_initial_conditions(input);
 
       meter.measure([conditions, input, &engine] {
+        return engine.run_compute(conditions.n_t, 1);
+      });
+      engine.cleanup();
+    };
+  }
+}
+TEST_CASE("GPU1 solution", "[gpu2]") {
+  char* name = new char[100];
+
+  for (Conditions conditions : test_cases) {
+    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
+
+    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
+      std::vector<float> input  = std::vector<float>(conditions.n_x);
+      input[0]                  = 100;
+      input[conditions.n_x - 1] = 200;
+      std::vector<float> output = std::vector<float>(conditions.n_x);
+      double dx                 = conditions.L / (conditions.n_x - 1);
+      double dt                 = conditions.t_final / (conditions.n_t - 1);
+
+      VulkanEngine engine;
+      engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
+      engine.init(false);
+      engine.set_initial_conditions(input);
+
+      meter.measure([conditions, input, &engine] {
+        return engine.run_compute(conditions.n_t, 2);
+      });
+      engine.cleanup();
+    };
+  }
+}
+
+TEST_CASE("GPU1 solution", "[gpu4]") {
+  char* name = new char[100];
+
+  for (Conditions conditions : test_cases) {
+    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
+
+    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
+      std::vector<float> input  = std::vector<float>(conditions.n_x);
+      input[0]                  = 100;
+      input[conditions.n_x - 1] = 200;
+      std::vector<float> output = std::vector<float>(conditions.n_x);
+      double dx                 = conditions.L / (conditions.n_x - 1);
+      double dt                 = conditions.t_final / (conditions.n_t - 1);
+
+      VulkanEngine engine;
+      engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
+      engine.init(false);
+      engine.set_initial_conditions(input);
+
+      meter.measure([conditions, input, &engine] {
+        return engine.run_compute(conditions.n_t, 4);
+      });
+      engine.cleanup();
+    };
+  }
+}
+TEST_CASE("GPU1 solution", "[gpugrid]") {
+  char* name = new char[100];
+
+  for (Conditions conditions : test_cases) {
+    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
+
+    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
+      std::vector<float> input  = std::vector<float>(conditions.n_x);
+      input[0]                  = 100;
+      input[conditions.n_x - 1] = 200;
+      std::vector<float> output = std::vector<float>(conditions.n_x);
+      double dx                 = conditions.L / (conditions.n_x - 1);
+      double dt                 = conditions.t_final / (conditions.n_t - 1);
+
+      VulkanEngine engine;
+      engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
+      engine.init(false);
+      engine.set_initial_conditions(input);
+
+      meter.measure([conditions, input, &engine] {
         return engine.run_compute(conditions.n_t, conditions.n_x / 1024);
       });
       engine.cleanup();
     };
   }
 }
+
 int main(int argc, char* argv[]) {
   int result = Catch::Session().run(argc, argv);
 

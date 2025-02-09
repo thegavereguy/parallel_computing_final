@@ -48,7 +48,7 @@ class VulkanEngine {
   VkDescriptorSetLayout _computeDescriptorLayout;
 
   VkPipeline _computePipeline;
-  VkPipelineLayout pipelineLayout;
+  VkPipelineLayout _pipelineLayout;
 
   VkBuffer _inputBuffer;
   VkBuffer _outputBuffer;

@@ -1,6 +1,5 @@
 #include <vulkan/vulkan_core.h>
 
-#include <span>
 #include <vector>
 
 struct DescriptorLayoutBuilder {
@@ -30,7 +29,7 @@ struct DescriptorAllocator {
   VkDescriptorPool pool;
 
   void init_pool(VkDevice device, uint32_t maxSets,
-                 std::span<PoolSizeRatio> poolRatios);
+                 std::vector<PoolSizeRatio> poolRatios);
   void clear_desciptors(VkDevice device);
   void destroy_pool(VkDevice device);
 

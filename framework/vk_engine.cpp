@@ -70,6 +70,7 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
   // Record command buffer A
   VkCommandBufferBeginInfo beginInfoA{};
   beginInfoA.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfoA.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
   write_buffer();
   for (uint32_t i = 0; i < timesteps; i++) {
@@ -77,12 +78,12 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
 
     vkCmdBindPipeline(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
                       _computePipeline);
-    vkCmdPushConstants(_mainCommandBufferA, pipelineLayout,
+    vkCmdPushConstants(_mainCommandBufferA, _pipelineLayout,
                        VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
                        &_pushConstants);
 
     vkCmdBindDescriptorSets(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            pipelineLayout, 0, 1, &_bufferDescriptorsA, 0,
+                            _pipelineLayout, 0, 1, &_bufferDescriptorsA, 0,
                             nullptr);
 
     // Dispatch compute shader
@@ -175,6 +176,9 @@ void VulkanEngine::init_vulkan() {
           .enable_validation_layers(_useValidationLayers)
           //.add_validation_feature_enable(VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT)
           .enable_extension(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME)
+          //.enable_extension(
+          // VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)
+          //.enable_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
           .use_default_debug_messenger()
           .require_api_version(1, 3, 0)
           .build();
@@ -215,19 +219,23 @@ void VulkanEngine::init_vulkan() {
   VK_CHECK(vkCreateHeadlessSurfaceEXT(_instance, &surfaceCreateInfo, nullptr,
                                       &_surface));
 
-  VkPhysicalDeviceFeatures features{};
-  features.shaderFloat64 = VK_TRUE;
+  VkPhysicalDeviceVulkan12Features features12{
+
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+      .bufferDeviceAddress = VK_TRUE,
+  };
+
   VALIDATION_MESSAGE("Selecting GPU\n");
-  auto physicalDevice =
-      selector
-          .set_minimum_version(1, 2)  // Vulkan 1.2 or higher
-          .prefer_gpu_device_type()   // Prefer discrete GPUs
-          .add_required_extensions({VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
-                                    VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
-                                    VK_KHR_16BIT_STORAGE_EXTENSION_NAME})
-          .set_surface(_surface)
-          .select()
-          .value();
+  auto physicalDevice = selector
+                            .set_minimum_version(1, 2)  // Vulkan 1.2 or higher
+                            .prefer_gpu_device_type()   // Prefer discrete GPUs
+                            .set_required_features_12(features12)
+                            .add_required_extensions({
+                                VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
+                            })
+                            .set_surface(_surface)
+                            .select()
+                            .value();
 
   VALIDATION_MESSAGE("Selected GPU: \n");
   VALIDATION_MESSAGE("Available extensions:\n");
@@ -400,7 +408,7 @@ void VulkanEngine::init_background_pipelines() {
   pipelineLayoutCI.pushConstantRangeCount = 1;
 
   VK_CHECK(vkCreatePipelineLayout(_device, &pipelineLayoutCI, nullptr,
-                                  &pipelineLayout));
+                                  &_pipelineLayout));
 
   VALIDATION_MESSAGE("Loading compute shader\n");
 
@@ -421,7 +429,7 @@ void VulkanEngine::init_background_pipelines() {
   VkComputePipelineCreateInfo computePipelineCI{};
   computePipelineCI.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
   computePipelineCI.pNext  = nullptr;
-  computePipelineCI.layout = pipelineLayout;
+  computePipelineCI.layout = _pipelineLayout;
   computePipelineCI.stage  = shaderStageCI;
 
   VALIDATION_MESSAGE("Creating compute pipeline\n");
@@ -432,7 +440,7 @@ void VulkanEngine::init_background_pipelines() {
   vkDestroyShaderModule(_device, shaderModule, nullptr);
 
   _mainDeletionQueue.push([&]() {
-    vkDestroyPipelineLayout(_device, pipelineLayout, nullptr);
+    vkDestroyPipelineLayout(_device, _pipelineLayout, nullptr);
     vkDestroyPipeline(_device, _computePipeline, nullptr);
   });
 }
