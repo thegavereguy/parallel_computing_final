@@ -10,16 +10,19 @@ add_executable(openmp openmp.cpp)
 target_link_libraries(openmp PUBLIC  fmt shared)
 #target_compile_options(openmp PUBLIC -fopenmp)
 
-add_executable(mpi mpi.cpp)
-find_package(MPI REQUIRED)
-target_include_directories(mpi SYSTEM PRIVATE ${MPI_INCLUDE_PATH})
-# target_link_libraries(mpi ${MPI_C_LIBRARIES})
-target_link_libraries(mpi PUBLIC MPI::MPI_CXX)
+
+if(DEFINED ENV{BUILD_MPI} AND "$ENV{BUILD_MPI}" STREQUAL "true")
+	add_executable(mpi mpi.cpp)
+	find_package(MPI REQUIRED)
+	target_include_directories(mpi SYSTEM PRIVATE ${MPI_INCLUDE_PATH})
+	# target_link_libraries(mpi ${MPI_C_LIBRARIES})
+	target_link_libraries(mpi PUBLIC MPI::MPI_CXX)
 
 # custom target to run mpi target with mpirun
-add_custom_target(run_mpi
+	add_custom_target(run_mpi
 		COMMAND mpirun -np 4 $<TARGET_FILE:mpi>
 		DEPENDS mpi
 		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 		COMMENT "Running mpi target with mpirun"
-)
+	)
+endif()
