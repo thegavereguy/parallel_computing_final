@@ -11,7 +11,7 @@
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 #include <catch2/reporters/catch_reporter_streaming_base.hpp>
 
-TEST_CASE("Sequential solution", "[seq]") {
+TEST_CASE("Sequential solution", "[cpu_seq]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
     sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
@@ -31,7 +31,7 @@ TEST_CASE("Sequential solution", "[seq]") {
     };
   }
 }
-TEST_CASE("Parallel 2 inner solution", "[par2]") {
+TEST_CASE("Parallel 2 inner solution", "[cpu_par2]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
     sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
@@ -51,7 +51,7 @@ TEST_CASE("Parallel 2 inner solution", "[par2]") {
     };
   }
 }
-TEST_CASE("Parallel 4 inner solution", "[par4]") {
+TEST_CASE("Parallel 4 inner solution", "[cpu_par4]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
     sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
@@ -71,7 +71,7 @@ TEST_CASE("Parallel 4 inner solution", "[par4]") {
     };
   }
 }
-TEST_CASE("Parallel 8 inner solution", "[par8]") {
+TEST_CASE("Parallel 8 inner solution", "[cpu_par8]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
     sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
