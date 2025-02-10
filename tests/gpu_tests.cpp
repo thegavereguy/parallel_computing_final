@@ -29,6 +29,7 @@ TEST_CASE("GPU1 solution", "[gpu1]") {
 
   output = engine.run_compute(conditions.n_t, 1);
   for (int i = 0; i < conditions.n_x; i++) {
+    // fmt::print("{} ", output[i]);
     REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
   }
 

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(framework LANGUAGES C CXX)
 
+if(DEFINED ENV{DOWNLOAD_VULKAN_SDK} AND "$ENV{DOWNLOAD_VULKAN_SDK}" STREQUAL "true")
 # Message("Downloading Vulkan SDK" )
 # FetchContent_Declare(
 # 		VulkanSDK
@@ -23,31 +24,30 @@ project(framework LANGUAGES C CXX)
 set(VULKAN_SDK_DIR "${CMAKE_BINARY_DIR}/VulkanSDK")
 
 
-# Run the Vulkan SDK Installer (Windows Only)
-# if(WIN32)
-# 	message("Downloading Vulkan SDK for Windows")
-# 		set(VULKAN_SDK_URL "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe")
-# 		set(VULKAN_SDK_INSTALLER "${CMAKE_BINARY_DIR}/vulkan-sdk.exe")
-#     execute_process(
-#         COMMAND ${VULKAN_SDK_INSTALLER} /S
-#         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-#     )
-# elseif(UNIX)
-# 	message("Downloading Vulkan SDK for Linux")
-#     # Example for Linux: Download TAR.GZ and Extract
-#     set(VULKAN_SDK_TAR "vulkansdk-linux-x86_64-1.3.296.0.tar.xz")
-# 	set(VULKAN_SDK_VER "1.3.296.0")
-# 	file(DOWNLOAD "https://sdk.lunarg.com/sdk/download/1.3.296.0/linux/vulkansdk-linux-x86_64-1.3.296.0.tar.xz" ${CMAKE_BINARY_DIR}/${VULKAN_SDK_TAR} SHOW_PROGRESS CACHE)
-#
-# 		execute_process(COMMAND mkdir -p ${VULKAN_SDK_DIR})
-#     execute_process(
-#         COMMAND tar -xvf ${CMAKE_BINARY_DIR}/${VULKAN_SDK_TAR} -C ${VULKAN_SDK_DIR}
-#     )
-# 	execute_process(COMMAND source ${VULKAN_SDK_DIR}/1.3.296.0/setup-env.sh)
-# endif()
-#
-# Set Vulkan SDK environment variables
-#set(ENV{VULKAN_SDK} "${VULKAN_SDK_DIR}/${VULKAN_SDK_VER}")
+if(WIN32)
+	message("Downloading Vulkan SDK for Windows")
+		set(VULKAN_SDK_URL "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe")
+		set(VULKAN_SDK_INSTALLER "${CMAKE_BINARY_DIR}/vulkan-sdk.exe")
+    execute_process(
+        COMMAND ${VULKAN_SDK_INSTALLER} /S
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+elseif(UNIX)
+	message("Downloading Vulkan SDK for Linux")
+	set(VULKAN_SDK_VER "1.3.296.0")
+		set(VULKAN_SDK_TAR "vulkansdk-linux-x86_64-${VULKAN_SDK_VER}.tar.xz")
+		message(source  ${VULKAN_SDK_DIR}/${VULKAN_SDK_VER}/setup-env.sh)
+	file(DOWNLOAD "https://sdk.lunarg.com/sdk/download/${VULKAN_SDK_VER}/linux/vulkansdk-linux-x86_64-${VULKAN_SDK_VER}.tar.xz" ${CMAKE_BINARY_DIR}/${VULKAN_SDK_TAR} SHOW_PROGRESS CACHE)
+
+		execute_process(COMMAND mkdir -p ${VULKAN_SDK_DIR})
+    execute_process(
+        COMMAND tar -xvf ${CMAKE_BINARY_DIR}/${VULKAN_SDK_TAR} -C ${VULKAN_SDK_DIR}
+    )
+	execute_process(COMMAND source ${VULKAN_SDK_DIR}/${VULKAN_SDK_VER}/setup-env.sh)
+	set(ENV{VULKAN_SDK} "${VULKAN_SDK_DIR}/${VULKAN_SDK_VER}")
+endif()
+
+endif()
 
 set(FRAMEWORK_HEADERS
 	include/vk_types.h

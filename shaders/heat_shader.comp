@@ -1,7 +1,7 @@
 #version 450
 #extension GL_EXT_debug_printf : enable
 
-layout(local_size_x = 256) in;
+layout(local_size_x = 1024) in;
 
 layout(binding = 0) buffer InputBuffer {
     float input_temp[];

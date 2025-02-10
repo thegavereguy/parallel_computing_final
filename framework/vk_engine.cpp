@@ -49,6 +49,9 @@ void VulkanEngine::cleanup() {
 
     // destroy synchronization objects
     vkDestroyFence(_device, _renderFence, nullptr);
+    for (int i = 0; i < FRAME_OVERLAP; i++) {
+      vkDestroyFence(_device, _computeFences[i], nullptr);
+    }
     vkDestroySemaphore(_device, _renderSemaphore, nullptr);
     vkDestroySemaphore(_device, _swapchainSemaphore, nullptr);
 
@@ -67,102 +70,139 @@ void VulkanEngine::cleanup() {
 std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
                                              uint32_t groupCount) {
   VALIDATION_MESSAGE("Starting Compute Configuration\n");
-  // Record command buffer A
-  VkCommandBufferBeginInfo beginInfoA{};
-  beginInfoA.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfoA.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  VkDescriptorSet descriptorSetA;
+  VkDescriptorSet descriptorSetB;
 
   write_buffer();
-  for (uint32_t i = 0; i < timesteps; i++) {
-    vkBeginCommandBuffer(_mainCommandBufferA, &beginInfoA);
 
-    vkCmdBindPipeline(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
-                      _computePipeline);
-    vkCmdPushConstants(_mainCommandBufferA, _pipelineLayout,
+  for (uint32_t i = 0; i < timesteps; i++) {
+    // fmt::print("Timestep: {}\n", i);
+    uint32_t currentFrame = i % FRAME_OVERLAP;
+    VkCommandBufferBeginInfo beginInfoA{};
+    beginInfoA.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    // beginInfoA.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    // beginInfoA.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
+    // Wait for previous execution of this frame
+    vkWaitForFences(_device, 1, &_computeFences[currentFrame], VK_TRUE,
+                    UINT64_MAX);
+    VK_CHECK(vkResetFences(_device, 1, &_computeFences[currentFrame]));
+    vkResetCommandBuffer(_computeCommandBuffers[currentFrame], 0);
+
+    VK_CHECK(vkBeginCommandBuffer(_computeCommandBuffers[currentFrame],
+                                  &beginInfoA));
+
+    vkCmdPushConstants(_computeCommandBuffers[currentFrame], _pipelineLayout,
                        VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
                        &_pushConstants);
+    vkCmdBindPipeline(_computeCommandBuffers[currentFrame],
+                      VK_PIPELINE_BIND_POINT_COMPUTE, _computePipeline);
 
-    vkCmdBindDescriptorSets(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            _pipelineLayout, 0, 1, &_bufferDescriptorsA, 0,
-                            nullptr);
+    // Swap buffers: Read from previous, write to current
+    VkDescriptorSet currentDescriptor =
+        (currentFrame == 0) ? _bufferDescriptorsA : _bufferDescriptorsB;
+    vkCmdBindDescriptorSets(_computeCommandBuffers[currentFrame],
+                            VK_PIPELINE_BIND_POINT_COMPUTE, _pipelineLayout, 0,
+                            1, &currentDescriptor, 0, nullptr);
 
-    // Dispatch compute shader
-    // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
-    // vkCmdDispatch(_mainCommandBufferA, (_gridSize / 512), 1, 1);
-    vkCmdDispatch(_mainCommandBufferA, groupCount, 1, 1);
+    vkCmdDispatch(_computeCommandBuffers[currentFrame], groupCount, 1, 1);
 
-    // Add memory barrier for buffer synchronization
-    VkMemoryBarrier barrier{};
-    barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    // Barrier: Ensure writes from timestep (n) are visible to timestep (n+1)
+    VkBufferMemoryBarrier bufferBarriers[2]{};
 
-    vkCmdPipelineBarrier(_mainCommandBufferA,
+    // Ensure the previous write (outputBuffer) is visible
+    bufferBarriers[0].sType         = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufferBarriers[0].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    bufferBarriers[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    bufferBarriers[0].buffer =
+        (currentFrame == 0) ? _outputBuffer : _inputBuffer;
+    bufferBarriers[0].offset = 0;
+    bufferBarriers[0].size   = VK_WHOLE_SIZE;
+
+    // Ensure the new write (inputBuffer) is ready
+    bufferBarriers[1].sType         = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufferBarriers[1].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    bufferBarriers[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    bufferBarriers[1].buffer =
+        (currentFrame == 0) ? _inputBuffer : _outputBuffer;
+    bufferBarriers[1].offset = 0;
+    bufferBarriers[1].size   = VK_WHOLE_SIZE;
+
+    // Insert both barriers
+    vkCmdPipelineBarrier(_computeCommandBuffers[currentFrame],
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier,
-                         0, nullptr, 0, nullptr);
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 2,
+                         bufferBarriers, 0, nullptr);
+    VK_CHECK(vkEndCommandBuffer(_computeCommandBuffers[currentFrame]));
 
-    vkEndCommandBuffer(_mainCommandBufferA);
+    // Submit
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers    = &_computeCommandBuffers[currentFrame];
 
-    // Submit command buffer
-    VkSubmitInfo submitInfoA{};
-    submitInfoA.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfoA.commandBufferCount = 1;
-    submitInfoA.pCommandBuffers    = &_mainCommandBufferA;
-
-    // Record command buffer B
-    // VkCommandBufferBeginInfo beginInfoB{};
-    // beginInfoB.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    //
-    // vkBeginCommandBuffer(_mainCommandBufferB, &beginInfoB);
-    //
-    // vkCmdBindPipeline(_mainCommandBufferB, VK_PIPELINE_BIND_POINT_COMPUTE,
-    //                   _computePipeline);
-    // vkCmdPushConstants(_mainCommandBufferB, pipelineLayout,
-    //                    VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
-    //                    &_pushConstants);
-    //
-    // vkCmdBindDescriptorSets(_mainCommandBufferB,
-    // VK_PIPELINE_BIND_POINT_COMPUTE,
-    //                         pipelineLayout, 0, 1, &_bufferDescriptorsB, 0,
-    //                         nullptr);
-    //
-    // // Dispatch compute shader
-    // fmt::print("Dispatching compute shader B\n");
-    // // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
-    // vkCmdDispatch(_mainCommandBufferB, 2, 1, 1);
-    //
-    // // Add memory barrier for buffer synchronization
-    // VkMemoryBarrier barrierB{};
-    // barrierB.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    // barrierB.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    // barrierB.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    //
-    // vkCmdPipelineBarrier(_mainCommandBufferB,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
-    //                      &barrierB, 0, nullptr, 0, nullptr);
-    //
-    // vkEndCommandBuffer(_mainCommandBufferB);
-    //
-    // // Submit command buffer
-    // VkSubmitInfo submitInfoB{};
-    // submitInfoB.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    // submitInfoB.commandBufferCount = 1;
-    // submitInfoB.pCommandBuffers    = &_mainCommandBufferB;
-    //
-    // fmt::print("Submitting command buffer\n");
-    // for (int i = 0; i < timesteps; i++) {
-    vkQueueSubmit(_graphicsQueue, 1, &submitInfoA, VK_NULL_HANDLE);
-    vkQueueWaitIdle(_graphicsQueue);
-    // vkQueueSubmit(_graphicsQueue, 1, &submitInfoB, VK_NULL_HANDLE);
-    // vkQueueWaitIdle(_graphicsQueue);
-    //}
-    if (i != timesteps - 1) {
-      std::swap(_bufferDescriptorsA, _bufferDescriptorsB);
-    }
+    VK_CHECK(vkQueueSubmit(_graphicsQueue, 1, &submitInfo,
+                           _computeFences[currentFrame]));
   }
+
+  // Wait for final execution before reading results
+  VK_CHECK(vkWaitForFences(_device, 1,
+                           &_computeFences[(timesteps - 1) % FRAME_OVERLAP],
+                           VK_TRUE, UINT64_MAX));
   return read_buffer();
+
+  // for (uint32_t i = 0; i < timesteps; i++) {
+  //   vkWaitForFences(_device, 1, &_renderFence, VK_TRUE, UINT64_MAX);
+  //
+  //   vkBeginCommandBuffer(_mainCommandBufferA, &beginInfoA);
+  //
+  //   vkCmdBindPipeline(_mainCommandBufferA, VK_PIPELINE_BIND_POINT_COMPUTE,
+  //                     _computePipeline);
+  //   vkCmdPushConstants(_mainCommandBufferA, _pipelineLayout,
+  //                      VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstants),
+  //                      &_pushConstants);
+  //
+  //   vkCmdBindDescriptorSets(_mainCommandBufferA,
+  //   VK_PIPELINE_BIND_POINT_COMPUTE,
+  //                           _pipelineLayout, 0, 1, &_bufferDescriptorsA, 0,
+  //                           nullptr);
+  //
+  //   // Dispatch compute shader
+  //   // vkCmdDispatch(_mainCommandBuffer, (_gridSize + 255) / 256, 1, 1);
+  //   // vkCmdDispatch(_mainCommandBufferA, (_gridSize / 512), 1, 1);
+  //   vkCmdDispatch(_mainCommandBufferA, groupCount, 1, 1);
+  //
+  //   // Add memory barrier for buffer synchronization
+  //   VkMemoryBarrier barrier{};
+  //   barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+  //   barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  //   barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  //
+  //   vkCmdPipelineBarrier(_mainCommandBufferA,
+  //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+  //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
+  //                        &barrier, 0, nullptr, 0, nullptr);
+  //
+  //   vkEndCommandBuffer(_mainCommandBufferA);
+  //
+  //   // Submit command buffer
+  //   VkSubmitInfo submitInfoA{};
+  //   submitInfoA.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  //   submitInfoA.commandBufferCount = 1;
+  //   submitInfoA.pCommandBuffers    = &_mainCommandBufferA;
+  //
+  //   vkResetFences(_device, 1, &_renderFence);
+  //   vkQueueSubmit(_graphicsQueue, 1, &submitInfoA, _renderFence);
+  //
+  //   // vkQueueWaitIdle(_graphicsQueue);
+  //   //
+  //   if (i != timesteps - 1) {
+  //     std::swap(_bufferDescriptorsA, _bufferDescriptorsB);
+  //   }
+  // }
+  // vkDeviceWaitIdle(_device);
+  // return read_buffer();
   // compute();
 }
 
@@ -180,7 +220,7 @@ void VulkanEngine::init_vulkan() {
           // VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)
           //.enable_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
           .use_default_debug_messenger()
-          .require_api_version(1, 2, 0)
+          .require_api_version(1, 3, 0)
           .build();
 
   vkb::Instance vkb_inst = inst_ret.value();
@@ -227,7 +267,7 @@ void VulkanEngine::init_vulkan() {
   };
 
   VALIDATION_MESSAGE("Selecting GPU\n");
-  auto physicalDevice = selector.set_minimum_version(1, 2)
+  auto physicalDevice = selector.set_minimum_version(1, 3)
                             .prefer_gpu_device_type()
                             .set_required_features_12(features12)
                             .add_required_extensions({
@@ -322,9 +362,15 @@ void VulkanEngine::init_commands() {
   VALIDATION_MESSAGE("Allocating command buffer\n");
   // allocate the default command buffer that we will use for rendering
   VkCommandBufferAllocateInfo cmdAllocInfo =
-      vkinit::command_buffer_allocate_info(_commandPool, 1);
+      vkinit::command_buffer_allocate_info(_commandPool, 2);
+  // VK_CHECK( vkAllocateCommandBuffers(_device, &cmdAllocInfo,
+  // &_mainCommandBufferA));
+
+  _computeCommandBuffers = new VkCommandBuffer[FRAME_OVERLAP];
+  // for (int i; i < FRAME_OVERLAP; i++) {
   VK_CHECK(
-      vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_mainCommandBufferA));
+      vkAllocateCommandBuffers(_device, &cmdAllocInfo, _computeCommandBuffers));
+  //}
 }
 void VulkanEngine::init_sync_structures() {
   // create synchronization structures
@@ -338,7 +384,12 @@ void VulkanEngine::init_sync_structures() {
                              &_swapchainSemaphore));
   VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr,
                              &_renderSemaphore));
-  VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_renderFence));
+  // VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_renderFence));
+  _computeFences = new VkFence[FRAME_OVERLAP];
+  for (int i = 0; i < 2; i++) {
+    VK_CHECK(
+        vkCreateFence(_device, &fenceCreateInfo, nullptr, &_computeFences[i]));
+  }
 }
 
 void VulkanEngine::init_descriptors() {
@@ -368,14 +419,14 @@ void VulkanEngine::init_descriptors() {
   _bufferDescriptorsB =
       globalDescriptorAllocator.allocate(_device, _computeDescriptorLayout);
 
-  VkDescriptorBufferInfo inputBufferInfo{};
-  inputBufferInfo.buffer = _inputBuffer;
-  inputBufferInfo.offset = 0;
-  inputBufferInfo.range  = VK_WHOLE_SIZE;
-  VkDescriptorBufferInfo outputBufferInfo{};
-  outputBufferInfo.buffer = _outputBuffer;
-  outputBufferInfo.offset = 0;
-  outputBufferInfo.range  = VK_WHOLE_SIZE;
+  VkDescriptorBufferInfo inputDescBufferInfo{};
+  inputDescBufferInfo.buffer = _inputBuffer;
+  inputDescBufferInfo.offset = 0;
+  inputDescBufferInfo.range  = VK_WHOLE_SIZE;
+  VkDescriptorBufferInfo outputDescBufferInfo{};
+  outputDescBufferInfo.buffer = _outputBuffer;
+  outputDescBufferInfo.offset = 0;
+  outputDescBufferInfo.range  = VK_WHOLE_SIZE;
 
   VkWriteDescriptorSet descriptorWrites[2]{};
 
@@ -384,21 +435,21 @@ void VulkanEngine::init_descriptors() {
   descriptorWrites[0].dstBinding      = 0;
   descriptorWrites[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   descriptorWrites[0].descriptorCount = 1;
-  descriptorWrites[0].pBufferInfo     = &inputBufferInfo;
+  descriptorWrites[0].pBufferInfo     = &inputDescBufferInfo;
 
   descriptorWrites[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
   descriptorWrites[1].dstSet          = _bufferDescriptorsA;
   descriptorWrites[1].dstBinding      = 1;
   descriptorWrites[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   descriptorWrites[1].descriptorCount = 1;
-  descriptorWrites[1].pBufferInfo     = &outputBufferInfo;
+  descriptorWrites[1].pBufferInfo     = &outputDescBufferInfo;
 
   vkUpdateDescriptorSets(_device, 2, descriptorWrites, 0, nullptr);
 
   descriptorWrites[0].dstSet      = _bufferDescriptorsB;
-  descriptorWrites[0].pBufferInfo = &outputBufferInfo;
+  descriptorWrites[0].pBufferInfo = &outputDescBufferInfo;
   descriptorWrites[1].dstSet      = _bufferDescriptorsB;
-  descriptorWrites[1].pBufferInfo = &inputBufferInfo;
+  descriptorWrites[1].pBufferInfo = &inputDescBufferInfo;
 
   vkUpdateDescriptorSets(_device, 2, descriptorWrites, 0, nullptr);
 
@@ -534,19 +585,9 @@ void VulkanEngine::set_initial_conditions(std::vector<float> initial) {
 void VulkanEngine::write_buffer() {
   VALIDATION_MESSAGE("Writing data into input buffer\n");
 
-  // write the initial conditions to the input buffer
-  // void* data;
-  // vmaMapMemory(_allocator, _inputBufferMemory, &data);
-  // memcpy(data, &_pushConstants, sizeof(_pushConstants));
-  // vmaUnmapMemory(_allocator, _inputBufferMemory);
-
   VK_CHECK(vmaCopyMemoryToAllocation(_allocator, _initial_conditions,
                                      _inputBufferAlloc, 0,
                                      _gridSize * sizeof(float)));
-  // memcpy(data, initial_conditions.data(),
-  //       initial_conditions.size() * sizeof(float));
-  // vmaUnmapMemory(_allocator, _inputBufferAlloc);
-  //  delete[] data;  //for some reason this crashes the program
 }
 
 std::vector<float> VulkanEngine::read_buffer() {

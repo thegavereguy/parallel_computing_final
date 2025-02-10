@@ -8,6 +8,7 @@
 #include <vector>
 
 constexpr unsigned int FRAME_OVERLAP = 2;
+
 class VulkanEngine {
  public:
   bool _isInitialized{false};
@@ -36,11 +37,13 @@ class VulkanEngine {
   VkCommandPool _commandPool;
   VkCommandBuffer _mainCommandBufferA;
   VkCommandBuffer _mainCommandBufferB;
+  VkCommandBuffer* _computeCommandBuffers;
   VkSemaphore _swapchainSemaphore;  // needed so that the render commands wait
                                     // on the swapchain image request.
   VkSemaphore _renderSemaphore;  // used to control presenting the image to the
                                  // os once the drawing finishes
   VkFence _renderFence;  // Allows to wait for the GPU to finish rendering
+  VkFence* _computeFences;
 
   DescriptorAllocator globalDescriptorAllocator;
   VkDescriptorSet _bufferDescriptorsA;
