@@ -1,0 +1,43 @@
+#version 450
+
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_ballot : enable
+#extension GL_EXT_debug_printf : enable
+
+layout(local_size_x = 256) in;
+
+layout(binding = 0) buffer InputBuffer {
+    float input_temp[];
+};
+
+layout(binding = 1) buffer OutputBuffer {
+    float output_temp[];
+};
+
+layout(push_constant) uniform Constants {
+    float dt;           // Time step
+    float dx;           // Space step
+    float alpha;        // Thermal diffusivity
+    uint grid;          // Grid size
+} params;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    uint lane = gl_SubgroupInvocationID;   // Thread index within the warp
+    uint subgroupSize = gl_SubgroupSize;   // Warp size (e.g., 32 on NVIDIA)
+
+    // Ensure we don't process out-of-bounds elements
+    if (idx >= params.grid) return;
+
+    float u_i = input_temp[idx];
+    float u_left = (idx > 0) ? subgroupBroadcast(input_temp[idx - 1], lane - 1) : u_i;
+    float u_right = (idx < params.grid - 1) ? subgroupBroadcast(input_temp[idx + 1], lane + 1) : u_i;
+
+    // Compute heat equation update
+    float u_xx = (u_right - 2.0 * u_i + u_left) / (params.dx * params.dx);
+    output_temp[idx] = u_i + params.dt * params.alpha * u_xx;
+
+    // Debugging info
+    debugPrintfEXT("Idx: %d, Lane: %d, u: %f, u_left: %f, u_right: %f\n", idx, lane, u_i, u_left, u_right);
+}
+

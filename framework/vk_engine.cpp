@@ -102,8 +102,6 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier,
                          0, nullptr, 0, nullptr);
 
-    // Swap buffers for next iteration
-
     vkEndCommandBuffer(_mainCommandBufferA);
 
     // Submit command buffer
@@ -246,6 +244,29 @@ void VulkanEngine::init_vulkan() {
     for (auto ext : physicalDevice.get_extensions()) {
       fmt::print("{}\n", ext);
     }
+  }
+
+  VkPhysicalDeviceSubgroupProperties subgroupProperties;
+
+  VkPhysicalDeviceProperties2KHR deviceProperties2;
+  deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+  deviceProperties2.pNext = &subgroupProperties;
+  vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProperties2);
+
+  // Example of checking if supported in fragment shader
+  if ((subgroupProperties.supportedStages & VK_SHADER_STAGE_FRAGMENT_BIT) !=
+      0) {
+    fmt::print("Fragment shader subgroup operations supported\n");
+  } else {
+    fmt::print("Fragment shader subgroup operations not supported\n");
+  }
+
+  // Example of checking if ballot is supported
+  if ((subgroupProperties.supportedOperations &
+       VK_SUBGROUP_FEATURE_BALLOT_BIT) != 0) {
+    fmt::print("Subgroup ballot operations supported\n");
+  } else {
+    fmt::print("Subgroup ballot operations not supported\n");
   }
 
   // create the final vulkan device
@@ -440,7 +461,6 @@ void VulkanEngine::init_background_pipelines() {
                                     &_computePipeline));
 
   vkDestroyShaderModule(_device, shaderModule, nullptr);
-
   _mainDeletionQueue.push([&]() {
     vkDestroyPipelineLayout(_device, _pipelineLayout, nullptr);
     vkDestroyPipeline(_device, _computePipeline, nullptr);

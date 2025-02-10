@@ -6,8 +6,12 @@ add_custom_command(
 	COMMENT "Compiling shader gradient.comp"
 )
 
-if(DEFINED ENV{DEBUG_SHADER} AND "$ENV{DEBUG_SHADER}" STREQUAL "true")
+if(DEFINED ENV{DEBUG_SHADERS} AND "$ENV{DEBUG_SHADERS}" STREQUAL "true")
+	message("Building debug shaders")
 	execute_process(COMMAND glslangValidator -g --target-env vulkan1.3 ${CMAKE_CURRENT_SOURCE_DIR}/heat_shader.comp -o ${CMAKE_CURRENT_BINARY_DIR}/heat_shader.spv)
-elseif()
+	execute_process(COMMAND glslangValidator -g --target-env vulkan1.3 ${CMAKE_CURRENT_SOURCE_DIR}/heat_shader_subgroup.comp -o ${CMAKE_CURRENT_BINARY_DIR}/heat_shader_subgroup.spv)
+else()
+	message("Building release shaders")
 	execute_process(COMMAND glslangValidator  --target-env vulkan1.3 ${CMAKE_CURRENT_SOURCE_DIR}/heat_shader.comp -o ${CMAKE_CURRENT_BINARY_DIR}/heat_shader.spv)
+	execute_process(COMMAND glslangValidator  --target-env vulkan1.3 ${CMAKE_CURRENT_SOURCE_DIR}/heat_shader_subgroup.comp -o ${CMAKE_CURRENT_BINARY_DIR}/heat_shader_subgroup.spv)
 endif()
