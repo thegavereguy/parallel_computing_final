@@ -160,7 +160,9 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
     // vkQueueSubmit(_graphicsQueue, 1, &submitInfoB, VK_NULL_HANDLE);
     // vkQueueWaitIdle(_graphicsQueue);
     //}
-    std::swap(_bufferDescriptorsA, _bufferDescriptorsB);
+    if (i != timesteps - 1) {
+      std::swap(_bufferDescriptorsA, _bufferDescriptorsB);
+    }
   }
   return read_buffer();
   // compute();
