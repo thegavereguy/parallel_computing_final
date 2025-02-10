@@ -111,7 +111,7 @@ TEST_CASE("GPU1 solution", "[gpugrid]") {
       engine.set_initial_conditions(input);
 
       meter.measure([conditions, input, &engine] {
-        return engine.run_compute(conditions.n_t, conditions.n_x / 1024);
+        return engine.run_compute(conditions.n_t, conditions.n_x / 32);
       });
       engine.cleanup();
     };
@@ -151,7 +151,7 @@ class PartialCSVReporter : public Catch::StreamingReporterBase {
     //           << stats.mean.lower_bound.count() / 1e6 << ","
     //           << stats.mean.upper_bound.count() / 1e6 << ","
     //           << stats.info.iterations << '\n';
-    fmt::print("{},{},{},{},{}\n", stats.info.name,
+    fmt::print("{},{:.4f},{:.4f},{:.4f},{}\n", stats.info.name,
                stats.mean.point.count() / 1e6,
                stats.mean.lower_bound.count() / 1e6,
                stats.mean.upper_bound.count() / 1e6, stats.info.iterations);
