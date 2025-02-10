@@ -12,11 +12,6 @@
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 #include <catch2/reporters/catch_reporter_streaming_base.hpp>
 
-const float expected[16] = {100,        86.71643,  74.04589,  63.181152,
-                            54.315628,  48.4243,   46.228462, 47.254143,
-                            53.699066,  62.853626, 78.45121,  95.896545,
-                            119.290276, 143.68361, 171.68854, 200};
-
 TEST_CASE("GPU1 solution", "[gpu1]") {
   Conditions conditions = {1, 0.5, 0.1, 16, 30};
 
@@ -33,9 +28,9 @@ TEST_CASE("GPU1 solution", "[gpu1]") {
   engine.set_initial_conditions(input);
 
   output = engine.run_compute(conditions.n_t, 1);
-
-  for (auto val : output) {
-    fmt::print("{} ", val);
+  for (int i = 0; i < conditions.n_x; i++) {
+    REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
   }
+
   engine.cleanup();
 };

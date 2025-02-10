@@ -7,6 +7,11 @@ struct Conditions {
 };
 void initialize_array(float* array, int size);
 
+const float expected[16]{100,       83.93145,  68.75215,  55.306667,
+                         44.362194, 36.59398,  32.58662,  32.84042,
+                         37.768017, 47.669025, 62.678932, 82.70068,
+                         107.33814, 135.85602, 167.18753, 200};
+
 // long version
 //  const Conditions test_cases[16] = {
 //      {1.0, 0.01, 1.0, 256, 1000},         // Smallest grid, lowest time steps

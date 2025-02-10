@@ -11,11 +11,6 @@
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 #include <catch2/reporters/catch_reporter_streaming_base.hpp>
 
-const float expected[16] = {100,        86.71643,  74.04589,  63.181152,
-                            54.315628,  48.4243,   46.228462, 47.254143,
-                            53.699066,  62.853626, 78.45121,  95.896545,
-                            119.290276, 143.68361, 171.68854, 200};
-
 TEST_CASE("Sequential solution - Test", "[seq]") {
   Conditions conditions = {1, 0.5, 0.1, 16, 30};
   float* input          = new float[conditions.n_x];
@@ -28,10 +23,8 @@ TEST_CASE("Sequential solution - Test", "[seq]") {
 
   sequential(conditions, input, output);
   for (int i = 0; i < conditions.n_x; i++) {
-    fmt::print("{} ", output[i]);
     REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
   }
-  fmt::print("\n");
   delete[] input;
   delete[] output;
 }
@@ -135,8 +128,7 @@ TEST_CASE("prototype solution - Test", "[seq_prot]") {
   input[conditions.n_x - 1] = 200;
   prototype(conditions, input, output);
   for (int i = 0; i < conditions.n_x; i++) {
-    fmt::print("{} ", output[i]);
-    // REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
+    REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
   }
   delete[] input;
   delete[] output;

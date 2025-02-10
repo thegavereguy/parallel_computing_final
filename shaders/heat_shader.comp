@@ -1,7 +1,7 @@
 #version 450
 #extension GL_EXT_debug_printf : enable
 
-layout(local_size_x = 1024) in;
+layout(local_size_x = 256) in;
 
 layout(binding = 0) buffer InputBuffer {
     float input_temp[];
@@ -24,19 +24,17 @@ void main() {
 		uint group_size = gl_WorkGroupSize.x;
 		uint group_count = gl_NumWorkGroups.x;
 		uint local_idx = gl_LocalInvocationID.x;
-    //debugPrintfEXT("index: %d ", idx);    
-		debugPrintfEXT("index: %d-%d (%d,%d) (groupsize: %d)(grid: %d), current value: %f\n",group_idx,group_count ,local_idx,idx, group_size,params.grid, input_temp[idx]);
-		//debugPrintfEXT("dt: %f\n", params.dt);
-    // Boundary check
-     if (idx >= params.grid || idx == 0 || idx == params.grid - 1) {
-         // Keep boundary conditions fixed
-        output_temp[idx] = input_temp[idx];
-        return;
-    }
 
-    // Explicit finite difference method for heat equation
-    // u_t = alpha * u_xx
+		if(idx >= params.grid){
+			return;
+		}
+
+    if ( idx == 0 || idx == params.grid - 1) {
+    	output_temp[idx] = input_temp[idx];
+      return;
+    }
+		debugPrintfEXT("index: %d-%d (%d,%d) (groupsize: %d)(grid: %d), current value: %f\n",group_idx,group_count ,local_idx,idx, group_size,params.grid, input_temp[idx]);
+
     float u_xx = (input_temp[idx+1] - 2.0 * input_temp[idx] + input_temp[idx-1]) / (params.dx * params.dx);
     output_temp[idx] = input_temp[idx] + params.dt * params.alpha * u_xx;
-		//output_temp[idx] = input_temp[idx] * 2;
 }
