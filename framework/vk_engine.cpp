@@ -226,16 +226,16 @@ void VulkanEngine::init_vulkan() {
   };
 
   VALIDATION_MESSAGE("Selecting GPU\n");
-  auto physicalDevice = selector
-                            .set_minimum_version(1, 2)  // Vulkan 1.2 or higher
-                            .prefer_gpu_device_type()   // Prefer discrete GPUs
-                            .set_required_features_12(features12)
-                            .add_required_extensions({
-                                VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
-                            })
-                            .set_surface(_surface)
-                            .select()
-                            .value();
+  auto physicalDevice =
+      selector
+          .set_minimum_version(1, 2)  // Vulkan 1.2 or higher
+          .prefer_gpu_device_type()   // Prefer discrete GPUs
+          .set_required_features_12(features12)
+          .add_required_extensions({VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
+                                    "VK_EXT_shader_subgroup_ballot"})
+          .set_surface(_surface)
+          .select()
+          .value();
 
   VALIDATION_MESSAGE("Selected GPU: \n");
   VALIDATION_MESSAGE("Available extensions:\n");
