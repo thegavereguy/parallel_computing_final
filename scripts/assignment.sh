@@ -2,6 +2,8 @@ export BENCHMARK_CONFIDENCE_INTERVAL=0.30
 export BENCH_SAMPLES=3
 export BUILD_VULKAN=true
 export BUILD_MPI=true
+export BUILD_ACC=true
+export DOWNLOAD_VULKAN_SDK=false
 export CLEAR_RESULTS=0
 
 export PROJECT_ROOT=$(pwd)
