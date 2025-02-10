@@ -5,4 +5,9 @@ add_custom_command(
 	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gradient.comp
 	COMMENT "Compiling shader gradient.comp"
 )
-execute_process(COMMAND glslangValidator --target-env vulkan1.3 ${CMAKE_CURRENT_SOURCE_DIR}/heat_shader.comp -o ${CMAKE_CURRENT_BINARY_DIR}/heat_shader.spv)
+
+if(DEFINED ENV{DEBUG_SHADER} AND "$ENV{DEBUG_SHADER}" STREQUAL "true")
+	execute_process(COMMAND glslangValidator -g --target-env vulkan1.3 ${CMAKE_CURRENT_SOURCE_DIR}/heat_shader.comp -o ${CMAKE_CURRENT_BINARY_DIR}/heat_shader.spv)
+elseif()
+	execute_process(COMMAND glslangValidator  --target-env vulkan1.3 ${CMAKE_CURRENT_SOURCE_DIR}/heat_shader.comp -o ${CMAKE_CURRENT_BINARY_DIR}/heat_shader.spv)
+endif()
