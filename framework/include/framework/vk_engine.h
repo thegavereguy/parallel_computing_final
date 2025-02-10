@@ -42,7 +42,6 @@ class VulkanEngine {
                                     // on the swapchain image request.
   VkSemaphore _renderSemaphore;  // used to control presenting the image to the
                                  // os once the drawing finishes
-  VkFence _renderFence;  // Allows to wait for the GPU to finish rendering
   VkFence* _computeFences;
 
   DescriptorAllocator globalDescriptorAllocator;

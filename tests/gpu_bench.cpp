@@ -26,10 +26,10 @@ TEST_CASE("GPU1 solution", "[gpugrid]") {
       double dx                 = conditions.L / (conditions.n_x - 1);
       double dt                 = conditions.t_final / (conditions.n_t - 1);
 
-      fmt::print("{}", conditions.alpha * (dt / (dx * dx)));
+      // fmt::print("{}", conditions.alpha * (dt / (dx * dx)));
       VulkanEngine engine;
       engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
-      engine.init(true);
+      engine.init(false);
       engine.set_initial_conditions(input);
 
       int compute_groups =

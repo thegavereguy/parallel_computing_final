@@ -47,11 +47,12 @@ void VulkanEngine::cleanup() {
 
     vkDestroyCommandPool(_device, _commandPool, nullptr);
 
+    delete[] _computeCommandBuffers;
     // destroy synchronization objects
-    vkDestroyFence(_device, _renderFence, nullptr);
     for (int i = 0; i < FRAME_OVERLAP; i++) {
       vkDestroyFence(_device, _computeFences[i], nullptr);
     }
+    delete[] _computeFences;
     vkDestroySemaphore(_device, _renderSemaphore, nullptr);
     vkDestroySemaphore(_device, _swapchainSemaphore, nullptr);
 
