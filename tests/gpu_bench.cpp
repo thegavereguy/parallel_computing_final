@@ -111,7 +111,7 @@ TEST_CASE("GPU1 solution", "[gpugrid]") {
       engine.set_initial_conditions(input);
 
       meter.measure([conditions, input, &engine] {
-        return engine.run_compute(conditions.n_t, conditions.n_x / 32);
+        return engine.run_compute(conditions.n_t, conditions.n_x / 256);
       });
       engine.cleanup();
     };

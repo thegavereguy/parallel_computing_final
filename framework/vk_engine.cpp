@@ -180,7 +180,7 @@ void VulkanEngine::init_vulkan() {
           // VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)
           //.enable_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
           .use_default_debug_messenger()
-          .require_api_version(1, 3, 0)
+          .require_api_version(1, 2, 0)
           .build();
 
   vkb::Instance vkb_inst = inst_ret.value();
@@ -191,11 +191,12 @@ void VulkanEngine::init_vulkan() {
   _debug_messenger = vkb_inst.debug_messenger;
 
   // vulkan 1.3 features
-  VkPhysicalDeviceVulkan13Features features13{
-      .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-      .synchronization2 = true,
-      .dynamicRendering = false,
-  };
+  // VkPhysicalDeviceVulkan13Features features13{
+  //     .sType            =
+  //     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+  //     .synchronization2 = true,
+  //     .dynamicRendering = false,
+  // };
 
   VALIDATION_MESSAGE("Selecting GPU\n");
   // use vkbootstrap to select a gpu.
@@ -226,16 +227,15 @@ void VulkanEngine::init_vulkan() {
   };
 
   VALIDATION_MESSAGE("Selecting GPU\n");
-  auto physicalDevice =
-      selector
-          .set_minimum_version(1, 2)  // Vulkan 1.2 or higher
-          .prefer_gpu_device_type()   // Prefer discrete GPUs
-          .set_required_features_12(features12)
-          .add_required_extensions({VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
-                                    "VK_EXT_shader_subgroup_ballot"})
-          .set_surface(_surface)
-          .select()
-          .value();
+  auto physicalDevice = selector.set_minimum_version(1, 2)
+                            .prefer_gpu_device_type()
+                            .set_required_features_12(features12)
+                            .add_required_extensions({
+                                VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME,
+                            })
+                            .set_surface(_surface)
+                            .select()
+                            .value();
 
   VALIDATION_MESSAGE("Selected GPU: \n");
   VALIDATION_MESSAGE("Available extensions:\n");
@@ -248,26 +248,26 @@ void VulkanEngine::init_vulkan() {
 
   VkPhysicalDeviceSubgroupProperties subgroupProperties;
 
-  VkPhysicalDeviceProperties2KHR deviceProperties2;
-  deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-  deviceProperties2.pNext = &subgroupProperties;
-  vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProperties2);
-
-  // Example of checking if supported in fragment shader
-  if ((subgroupProperties.supportedStages & VK_SHADER_STAGE_FRAGMENT_BIT) !=
-      0) {
-    fmt::print("Fragment shader subgroup operations supported\n");
-  } else {
-    fmt::print("Fragment shader subgroup operations not supported\n");
-  }
-
-  // Example of checking if ballot is supported
-  if ((subgroupProperties.supportedOperations &
-       VK_SUBGROUP_FEATURE_BALLOT_BIT) != 0) {
-    fmt::print("Subgroup ballot operations supported\n");
-  } else {
-    fmt::print("Subgroup ballot operations not supported\n");
-  }
+  // VkPhysicalDeviceProperties2KHR deviceProperties2;
+  // deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+  // deviceProperties2.pNext = &subgroupProperties;
+  // vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProperties2);
+  //
+  // // Example of checking if supported in fragment shader
+  // if ((subgroupProperties.supportedStages & VK_SHADER_STAGE_FRAGMENT_BIT) !=
+  //     0) {
+  //   fmt::print("Fragment shader subgroup operations supported\n");
+  // } else {
+  //   fmt::print("Fragment shader subgroup operations not supported\n");
+  // }
+  //
+  // // Example of checking if ballot is supported
+  // if ((subgroupProperties.supportedOperations &
+  //      VK_SUBGROUP_FEATURE_BALLOT_BIT) != 0) {
+  //   fmt::print("Subgroup ballot operations supported\n");
+  // } else {
+  //   fmt::print("Subgroup ballot operations not supported\n");
+  // }
 
   // create the final vulkan device
 
