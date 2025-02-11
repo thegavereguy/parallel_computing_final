@@ -16,7 +16,7 @@
 TEST_CASE("GPU1 solution", "[gpugrid]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
 
     BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
       std::vector<float> input  = std::vector<float>(conditions.n_x);
@@ -61,7 +61,7 @@ class PartialCSVReporter : public Catch::StreamingReporterBase {
                                uint64_t partNumber) override {
     // std::cout << "TestCase: " << testInfo.name << '#' << partNumber << '\n';
     // std::cout << "DIMENSION,MEAN,MINT,MAXT,ITER" << '\n';
-    fmt::print("DIMENSION,MEAN,MINT,MAXT,ITER\n");
+    fmt::print("NX,NT,MEAN,MINT,MAXT,ITER\n");
   }
 
   void testCasePartialEnded(Catch::TestCaseStats const& testCaseStats,

@@ -14,8 +14,7 @@
 TEST_CASE("Sequential solution", "[cpu_seq]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
-
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
     BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
       float* input              = new float[conditions.n_x];
       input[0]                  = 100;
@@ -34,7 +33,7 @@ TEST_CASE("Sequential solution", "[cpu_seq]") {
 TEST_CASE("Parallel 2 inner solution", "[cpu_par2]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
 
     BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
       float* input              = new float[conditions.n_x];
@@ -54,7 +53,7 @@ TEST_CASE("Parallel 2 inner solution", "[cpu_par2]") {
 TEST_CASE("Parallel 4 inner solution", "[cpu_par4]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
 
     BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
       float* input              = new float[conditions.n_x];
@@ -74,7 +73,7 @@ TEST_CASE("Parallel 4 inner solution", "[cpu_par4]") {
 TEST_CASE("Parallel 8 inner solution", "[cpu_par8]") {
   char* name = new char[100];
   for (Conditions conditions : test_cases) {
-    sprintf(name, "%ld", (long)conditions.n_x * (long)conditions.n_t);
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
 
     BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
       float* input              = new float[conditions.n_x];
@@ -110,7 +109,7 @@ class PartialCSVReporter : public Catch::StreamingReporterBase {
                                uint64_t partNumber) override {
     // std::cout << "TestCase: " << testInfo.name << '#' << partNumber << '\n';
     // std::cout << "DIMENSION,MEAN,MINT,MAXT,ITER" << '\n';
-    fmt::print("DIMENSION,MEAN,MINT,MAXT,ITER\n");
+    fmt::print("NX,NT,MEAN,MINT,MAXT,ITER\n");
   }
 
   void testCasePartialEnded(Catch::TestCaseStats const& testCaseStats,
