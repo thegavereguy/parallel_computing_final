@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
   //
   // if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
   //
-  engine.init(true);
+  engine.init(false, "../shaders/heat_shader_512.spv", 512);
   engine.set_initial_conditions(initial_conditions);
 
   struct timespec start, end;
@@ -66,8 +66,8 @@ int main(int argc, char **argv) {
       n_t,
       (n_x / GROUP_SIZE == 0
            ? 1
-           : n_x /
-                 GROUP_SIZE));  // the group show be a multiple of subgroupSize
+           : (n_x / GROUP_SIZE) +
+                 1));  // the group show be a multiple of subgroupSize
 
   clock_gettime(CLOCK_MONOTONIC, &end);
 
