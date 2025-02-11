@@ -95,19 +95,11 @@ void sequential_unroll(Conditions conditions, float* input, float* output) {
   float dx                   = conditions.L / (conditions.n_x - 1);
 
   for (int i = 0; i < conditions.n_t; i++) {
-    for (int j = 1; j < conditions.n_x - 1; j += 4) {
+#pragma omp unroll partial
+    for (int j = 1; j < conditions.n_x - 1; j += 1) {
       output[j] =
           input[j] + conditions.alpha * (dt / (dx * dx)) *
                          (input[j + 1] - 2 * input[j] + input[j - 1]);  // d^2u
-      output[j + 1] =
-          input[j + 1] +
-          conditions.alpha * (input[j + 2] - 2 * input[j + 1] + input[j]);
-      output[j + 2] =
-          input[j + 2] +
-          conditions.alpha * (input[j + 3] - 2 * input[j + 2] + input[j + 1]);
-      output[j + 3] =
-          input[j + 3] +
-          conditions.alpha * (input[j + 4] - 2 * input[j + 3] + input[j + 2]);
     }
     std::swap(input, output);
   }
@@ -129,13 +121,12 @@ void parallel2_collapse(Conditions conditions, float* input, float* output) {
   }
 }
 
-void prototype(Conditions conditions, float* input, float* output) {
+void parallel4_alligned(Conditions conditions, float* input, float* output) {
   float dt = conditions.t_final / (conditions.n_t - 1);
   float dx = conditions.L / (conditions.n_x - 1);
 
-  float* tmp_in = (float*)omp_aligned_alloc(32, conditions.n_x * sizeof(float));
-  float* tmp_out =
-      (float*)omp_aligned_alloc(32, conditions.n_x * sizeof(float));
+  float* tmp_in  = (float*)aligned_alloc(32, conditions.n_x * sizeof(float));
+  float* tmp_out = (float*)aligned_alloc(32, conditions.n_x * sizeof(float));
   for (int i = 0; i < conditions.n_x; i++) {
     tmp_in[i]  = input[i];
     tmp_out[i] = 0;
@@ -143,12 +134,12 @@ void prototype(Conditions conditions, float* input, float* output) {
 
   tmp_out[0]                  = tmp_in[0];
   tmp_out[conditions.n_x - 1] = tmp_in[conditions.n_x - 1];
-  // Set OpenMP thread affinity
+
   // omp_set_dynamic(0);
-  omp_set_num_threads(omp_get_max_threads());
+  // omp_set_num_threads(omp_get_max_threads());
 
   for (int t = 0; t < conditions.n_t; t++) {
-#pragma omp parallel
+#pragma omp parallel num_threads(4)
     {
 #pragma omp for simd aligned(tmp_in, tmp_out : 32) schedule(static)
       for (int j = 1; j < conditions.n_x - 1; j += 1) {
@@ -175,6 +166,6 @@ void prototype(Conditions conditions, float* input, float* output) {
   for (int i = 0; i < conditions.n_x; i++) {
     output[i] = tmp_in[i];
   }
-  omp_free(tmp_out);
-  omp_free(tmp_in);
+  free(tmp_out);
+  free(tmp_in);
 }

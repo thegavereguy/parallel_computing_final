@@ -1,0 +1,40 @@
+#version 450
+#extension GL_EXT_debug_printf : disable
+
+layout(local_size_x = 1024) in;
+
+layout(binding = 0) buffer InputBuffer {
+    float input_temp[];
+};
+
+layout(binding = 1) buffer OutputBuffer {
+    float output_temp[];
+};
+
+layout(push_constant) uniform Constants {
+    float dt;           // Time step
+    float dx;           // Space step
+    float alpha;        // Thermal diffusivity
+    uint grid;         // Grid size
+} params;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+		uint group_idx = gl_WorkGroupID.x;
+		uint group_size = gl_WorkGroupSize.x;
+		uint group_count = gl_NumWorkGroups.x;
+		uint local_idx = gl_LocalInvocationID.x;
+
+		if(idx >= params.grid){
+			return;
+		}
+
+    if ( idx == 0 || idx == params.grid - 1) {
+    	output_temp[idx] = input_temp[idx];
+      return;
+    }
+		//debugPrintfEXT("index: %d-%d (%d,%d) (groupsize: %d)(grid: %d), current value: %f\n",group_idx,group_count ,local_idx,idx, group_size,params.grid, input_temp[idx]);
+
+    float u_xx = (input_temp[idx+1] - 2.0 * input_temp[idx] + input_temp[idx-1]) / (params.dx * params.dx);
+    output_temp[idx] = input_temp[idx] + params.dt * params.alpha * u_xx;
+}

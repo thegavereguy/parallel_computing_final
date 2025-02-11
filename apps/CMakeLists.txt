@@ -14,11 +14,10 @@ target_link_libraries(openmp PUBLIC  fmt shared)
 if(DEFINED ENV{BUILD_MPI} AND "$ENV{BUILD_MPI}" STREQUAL "true")
 	message("building MPI solution")
 
-	add_executable(mpi mpi.cpp)
 	find_package(MPI REQUIRED)
-	target_include_directories(mpi SYSTEM PRIVATE ${MPI_INCLUDE_PATH})
-	# target_link_libraries(mpi ${MPI_C_LIBRARIES})
-	target_link_libraries(mpi PUBLIC MPI::MPI_CXX fmt)
+	add_executable(mpi mpi.cpp)
+	target_link_libraries(mpi PUBLIC  fmt MPI::MPI_CXX common)
+	target_include_directories(mpi PUBLIC ${MPI_CXX_INCLUDE_PATH})
 
 # custom target to run mpi target with mpirun
 	add_custom_target(run_mpi

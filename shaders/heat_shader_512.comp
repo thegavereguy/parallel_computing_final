@@ -1,7 +1,7 @@
 #version 450
-#extension GL_EXT_debug_printf : enable
+#extension GL_EXT_debug_printf : disable
 
-layout(local_size_x = 1024) in;
+layout(local_size_x = 512) in;
 
 layout(binding = 0) buffer InputBuffer {
     float input_temp[];
@@ -33,7 +33,7 @@ void main() {
     	output_temp[idx] = input_temp[idx];
       return;
     }
-		debugPrintfEXT("index: %d-%d (%d,%d) (groupsize: %d)(grid: %d), current value: %f\n",group_idx,group_count ,local_idx,idx, group_size,params.grid, input_temp[idx]);
+		//debugPrintfEXT("index: %d-%d (%d,%d) (groupsize: %d)(grid: %d), current value: %f\n",group_idx,group_count ,local_idx,idx, group_size,params.grid, input_temp[idx]);
 
     float u_xx = (input_temp[idx+1] - 2.0 * input_temp[idx] + input_temp[idx-1]) / (params.dx * params.dx);
     output_temp[idx] = input_temp[idx] + params.dt * params.alpha * u_xx;

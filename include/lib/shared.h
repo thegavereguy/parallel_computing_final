@@ -10,4 +10,4 @@ void sequential_unroll(Conditions, float*, float*);
 
 void parallel2_collapse(Conditions, float*, float*);
 
-void prototype(Conditions, float*, float*);
+void parallel4_alligned(Conditions, float*, float*);

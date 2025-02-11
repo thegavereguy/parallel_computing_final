@@ -90,6 +90,44 @@ TEST_CASE("Parallel 8 inner solution", "[cpu_par8]") {
     };
   }
 }
+TEST_CASE("Parallel 4 allingned solution", "[cpu_par4_all]") {
+  char* name = new char[100];
+  for (Conditions conditions : test_cases) {
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
+    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
+      float* input              = new float[conditions.n_x];
+      input[0]                  = 100;
+      input[conditions.n_x - 1] = 200;
+      float* output             = new float[conditions.n_x];
+
+      meter.measure([conditions, input, output] {
+        return parallel4_alligned(conditions, input, output);
+      });
+
+      delete[] input;
+      delete[] output;
+    };
+  }
+}
+TEST_CASE("Sequential unrolled solution", "[cpu_seq_unr]") {
+  char* name = new char[100];
+  for (Conditions conditions : test_cases) {
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
+    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
+      float* input              = new float[conditions.n_x];
+      input[0]                  = 100;
+      input[conditions.n_x - 1] = 200;
+      float* output             = new float[conditions.n_x];
+
+      meter.measure([conditions, input, output] {
+        return sequential_unroll(conditions, input, output);
+      });
+
+      delete[] input;
+      delete[] output;
+    };
+  }
+}
 
 int main(int argc, char* argv[]) {
   int result = Catch::Session().run(argc, argv);

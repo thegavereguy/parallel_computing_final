@@ -23,11 +23,13 @@ VulkanEngine* loadedEngine = nullptr;
 
 VulkanEngine& VulkanEngine::Get() { return *loadedEngine; }
 
-void VulkanEngine::init(bool bEnableValidationLayers) {
+void VulkanEngine::init(bool bEnableValidationLayers, const char* path,
+                        uint32_t shaderGroupSize) {
   // only one engine initialization is allowed with the application.
   assert(loadedEngine == nullptr);
   loadedEngine               = this;
   this->_useValidationLayers = bEnableValidationLayers;
+  _shaderGroupsize           = shaderGroupSize;
 
   // We initialize SDL and create a window with it.
   init_vulkan();
@@ -35,7 +37,7 @@ void VulkanEngine::init(bool bEnableValidationLayers) {
   init_sync_structures();
   init_buffers();
   init_descriptors();
-  init_pipelines();
+  init_pipeline(path);
 
   _isInitialized = true;
 }
@@ -444,9 +446,7 @@ void VulkanEngine::init_descriptors() {
   });
 }
 
-void VulkanEngine::init_pipelines() { init_background_pipelines(); };
-
-void VulkanEngine::init_background_pipelines() {
+void VulkanEngine::init_pipeline(const char* path) {
   VALIDATION_MESSAGE("Creating compute pipeline layout\n");
 
   VkPushConstantRange pushConstantRange{};
@@ -469,8 +469,7 @@ void VulkanEngine::init_background_pipelines() {
   VALIDATION_MESSAGE("Loading compute shader\n");
 
   VkShaderModule shaderModule;
-  if (!vkutil::load_shader_module("../shaders/heat_shader.spv", _device,
-                                  &shaderModule)) {
+  if (!vkutil::load_shader_module(path, _device, &shaderModule)) {
     VALIDATION_MESSAGE("Error when building the compute shader\n");
     return;
   }

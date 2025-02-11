@@ -61,6 +61,8 @@ class VulkanEngine {
   float _dt, _dx, _alpha;
   float* _initial_conditions;
 
+  uint32_t _shaderGroupsize;
+
   struct PushConstants {
     float dt;
     float dx;
@@ -71,7 +73,7 @@ class VulkanEngine {
   static VulkanEngine& Get();
 
   // initializes everything in the engine
-  void init(bool);
+  void init(bool, const char*, uint32_t);
 
   // shuts down the engine
   void cleanup();
@@ -90,7 +92,7 @@ class VulkanEngine {
   void init_buffers();
   void init_sync_structures();
   void init_descriptors();
-  void init_pipelines();
+  void init_pipeline(const char*);
   void init_background_pipelines();
   void write_buffer();
   std::vector<float> read_buffer();

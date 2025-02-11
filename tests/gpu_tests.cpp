@@ -12,7 +12,7 @@
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 #include <catch2/reporters/catch_reporter_streaming_base.hpp>
 
-TEST_CASE("GPU1 solution", "[gpu1]") {
+TEST_CASE("GPU1 solution - 512", "[gpu512]") {
   Conditions conditions = {1, 0.5, 0.1, 16, 30};
 
   std::vector<float> input  = std::vector<float>(conditions.n_x);
@@ -24,7 +24,55 @@ TEST_CASE("GPU1 solution", "[gpu1]") {
 
   VulkanEngine engine;
   engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
-  engine.init(false);
+  engine.init(false, "../shaders/heat_shader_512.spv", 512);
+  engine.set_initial_conditions(input);
+
+  output = engine.run_compute(conditions.n_t, 1);
+  for (int i = 0; i < conditions.n_x; i++) {
+    // fmt::print("{} ", output[i]);
+    REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
+  }
+
+  engine.cleanup();
+};
+
+TEST_CASE("GPU1 solution - 256", "[gpu256]") {
+  Conditions conditions = {1, 0.5, 0.1, 16, 30};
+
+  std::vector<float> input  = std::vector<float>(conditions.n_x);
+  input[0]                  = 100;
+  input[conditions.n_x - 1] = 200;
+  std::vector<float> output = std::vector<float>(conditions.n_x);
+  double dx                 = conditions.L / (conditions.n_x - 1);
+  double dt                 = conditions.t_final / (conditions.n_t - 1);
+
+  VulkanEngine engine;
+  engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
+  engine.init(false, "../shaders/heat_shader_256.spv", 256);
+  engine.set_initial_conditions(input);
+
+  output = engine.run_compute(conditions.n_t, 1);
+  for (int i = 0; i < conditions.n_x; i++) {
+    // fmt::print("{} ", output[i]);
+    REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
+  }
+
+  engine.cleanup();
+};
+
+TEST_CASE("GPU1 solution - 1024", "[gpu1024]") {
+  Conditions conditions = {1, 0.5, 0.1, 16, 30};
+
+  std::vector<float> input  = std::vector<float>(conditions.n_x);
+  input[0]                  = 100;
+  input[conditions.n_x - 1] = 200;
+  std::vector<float> output = std::vector<float>(conditions.n_x);
+  double dx                 = conditions.L / (conditions.n_x - 1);
+  double dt                 = conditions.t_final / (conditions.n_t - 1);
+
+  VulkanEngine engine;
+  engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
+  engine.init(false, "../shaders/heat_shader_1024.spv", 1024);
   engine.set_initial_conditions(input);
 
   output = engine.run_compute(conditions.n_t, 1);

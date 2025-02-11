@@ -11,10 +11,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 #include <catch2/reporters/catch_reporter_streaming_base.hpp>
+#include <cstdint>
 #include <cstdio>
 
-TEST_CASE("GPU1 solution", "[gpugrid]") {
-  char* name = new char[100];
+TEST_CASE("GPU 256 solution", "[gpu256]") {
+  char* name         = new char[100];
+  uint32_t groupSize = 256;
   for (Conditions conditions : test_cases) {
     sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
 
@@ -29,11 +31,75 @@ TEST_CASE("GPU1 solution", "[gpugrid]") {
       // fmt::print("{}", conditions.alpha * (dt / (dx * dx)));
       VulkanEngine engine;
       engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
-      engine.init(false);
+      engine.init(false, "../shaders/heat_shader_256.spv", groupSize);
       engine.set_initial_conditions(input);
 
       int compute_groups =
-          conditions.n_x / 1024 == 0 ? 1 : conditions.n_x / 1024;
+          conditions.n_x / groupSize == 0 ? 1 : conditions.n_x / groupSize;
+
+      meter.measure([conditions, input, &engine, compute_groups] {
+        return engine.run_compute(conditions.n_t, compute_groups);
+      });
+      engine.cleanup();
+    };
+  }
+  delete[] name;
+}
+
+TEST_CASE("GPU1 solution", "[gpu1024]") {
+  char* name         = new char[100];
+  uint32_t groupSize = 1024;
+  for (Conditions conditions : test_cases) {
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
+
+    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
+      std::vector<float> input  = std::vector<float>(conditions.n_x);
+      input[0]                  = 100;
+      input[conditions.n_x - 1] = 200;
+      std::vector<float> output = std::vector<float>(conditions.n_x);
+      double dx                 = conditions.L / (conditions.n_x - 1);
+      double dt                 = conditions.t_final / (conditions.n_t - 1);
+
+      // fmt::print("{}", conditions.alpha * (dt / (dx * dx)));
+      VulkanEngine engine;
+      engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
+      engine.init(false, "../shaders/heat_shader_1024.spv", groupSize);
+      engine.set_initial_conditions(input);
+
+      int compute_groups =
+          conditions.n_x / groupSize == 0 ? 1 : conditions.n_x / groupSize;
+
+      meter.measure([conditions, input, &engine, compute_groups] {
+        return engine.run_compute(conditions.n_t, compute_groups);
+      });
+      engine.cleanup();
+    };
+  }
+  delete[] name;
+}
+
+TEST_CASE("GPU1 solution", "[gpu512]") {
+  char* name         = new char[100];
+  uint32_t groupSize = 512;
+  for (Conditions conditions : test_cases) {
+    sprintf(name, "%ld,%ld", (long)conditions.n_x, (long)conditions.n_t);
+
+    BENCHMARK_ADVANCED(name)(Catch::Benchmark::Chronometer meter) {
+      std::vector<float> input  = std::vector<float>(conditions.n_x);
+      input[0]                  = 100;
+      input[conditions.n_x - 1] = 200;
+      std::vector<float> output = std::vector<float>(conditions.n_x);
+      double dx                 = conditions.L / (conditions.n_x - 1);
+      double dt                 = conditions.t_final / (conditions.n_t - 1);
+
+      // fmt::print("{}", conditions.alpha * (dt / (dx * dx)));
+      VulkanEngine engine;
+      engine.set_costants(dt, dx, conditions.alpha, conditions.n_x);
+      engine.init(false, "../shaders/heat_shader_512.spv", groupSize);
+      engine.set_initial_conditions(input);
+
+      int compute_groups =
+          conditions.n_x / groupSize == 0 ? 1 : conditions.n_x / groupSize;
 
       meter.measure([conditions, input, &engine, compute_groups] {
         return engine.run_compute(conditions.n_t, compute_groups);

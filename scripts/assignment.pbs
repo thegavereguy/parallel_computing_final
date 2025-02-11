@@ -1,0 +1,111 @@
+#!/bin/bash
+# Job name
+#PBS -N pc_assignment_final
+# Output files
+#PBS -o ./assignment.o
+#PBS -e ./assignment.e
+# Queue name
+#PBS -q short_gpuQ
+# Set the maximum wall time
+#PBS -l walltime=0:40:00
+# Number of nodes, cpus, mpi processors and amount of memory
+#PBS -l select=1:ncpus=16:mem=1gb
+
+
+# Modules for C++ compiler and CMake
+module load gcc91
+module load mpich-3.2
+
+g++() {
+    g++-9.1.0 "$@"
+}
+
+if [ -z $PROJECT_DIR ]; then
+		PROJECT_DIR="parallel_computing_final"
+fi
+
+PROJECT_ROOT=$HOME/$PROJECT_DIR
+
+# Select the working directory
+cd $HOME/$PROJECT_DIR
+
+if [ -z "$BUILD_OPTIMIZED" ]; then
+	echo "BUILD_OPTIMIZED is not set. Setting it to true";
+	export BUILD_OPTIMIZED=true;
+	build_optimized=0;
+else
+	echo "BUILD_OPTIMIZED is set to $BUILD_OPTIMIZED";
+	build_optimized=$BUILD_OPTIMIZED;
+fi
+
+if [ -z "$BENCH_SAMPLES" ]; then
+	export BENCH_SAMPLES=3
+fi
+
+echo "BENCH_SAMPLES is set to $BENCH_SAMPLES";
+
+if [ -z "$BENCHMARK_CONFIDENCE_INTERVAL" ]; then
+	export BENCHMARK_CONFIDENCE_INTERVAL=0.30
+fi
+echo "BENCHMARK_CONFIDENCE_INTERVAL is set to $BENCHMARK_CONFIDENCE_INTERVAL";
+
+if [ -z "$BUILD_VULKAN" ]; then
+	export BUILD_VULKAN=false
+fi
+
+if [ -z "$BUILD_MPI" ]; then
+	export BUILD_MPI=true
+fi
+
+if [ -z "$BUILD_ACC" ]; then
+	export BUILD_ACC=false
+fi
+
+if [ -z "$DOWNLOAD_VULKAN_SDK" ]; then
+	export DOWNLOAD_VULKAN_SDK=false
+fi
+
+if [ -z CLEAR_RESULTS ]; then
+	export CLEAR_RESULTS=0
+	clear_results=0
+else
+	clear_results=$CLEAR_RESULTS
+fi
+
+######################################################
+
+
+mkdir results > /dev/null
+
+if [ ${clear_results} == 1 ]; then
+	echo "Clearing previous results";
+	rm -rf results/*
+else
+	echo "Keeping previous results";
+fi
+
+# Print information about the cpu and gpu (which is somewhere in lspci)
+lscpu > results/cpu_info.txt
+lspci > results/gpu_info.txt
+
+# Creta a build directory if it does not exist
+mkdir build > /dev/null
+cd build
+
+
+# Compile the code
+#
+if [ ${build_optimized} == true ]; then
+	echo "Building with  optimization";
+	#cmake  -DBUILD_OPTIMIZED_O1=ON -DBUILD_OPTIMIZED_O2=OFF -DBUILD_OPTIMIZED_OF=OFF ..;
+else
+	echo "Building without optimization";
+fi
+
+# cheecky way to get the minimun required version of cmake
+/apps/cmake-20.3/bin/cmake ..
+
+make -j4
+cd ..
+
+sh $PROJECT_ROOT/scripts/run_benchmarks.sh

@@ -118,7 +118,7 @@ TEST_CASE("Parallel8 inner solution - Test", "[par8]") {
 //   delete[] input;
 //   delete[] output;
 // }
-TEST_CASE("prototype solution - Test", "[seq_prot]") {
+TEST_CASE("Par 4 alligned solution - Test", "[par4_all]") {
   Conditions conditions = {1, 0.5, 0.1, 16, 30};
   float* input          = new float[conditions.n_x];
   float* output         = new float[conditions.n_x];
@@ -126,8 +126,25 @@ TEST_CASE("prototype solution - Test", "[seq_prot]") {
   initialize_array(output, conditions.n_x);
   input[0]                  = 100;
   input[conditions.n_x - 1] = 200;
-  prototype(conditions, input, output);
+  parallel4_alligned(conditions, input, output);
   for (int i = 0; i < conditions.n_x; i++) {
+    REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
+  }
+  delete[] input;
+  delete[] output;
+}
+
+TEST_CASE("Sequential Unroll solution - Test", "[seq_unr]") {
+  Conditions conditions = {1, 0.5, 0.1, 16, 30};
+  float* input          = new float[conditions.n_x];
+  float* output         = new float[conditions.n_x];
+  initialize_array(input, conditions.n_x);
+  initialize_array(output, conditions.n_x);
+  input[0]                  = 100;
+  input[conditions.n_x - 1] = 200;
+  sequential_unroll(conditions, input, output);
+  for (int i = 0; i < conditions.n_x; i++) {
+    // fmt::print("{} ", output[i]);
     REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expected[i], 0.001));
   }
   delete[] input;

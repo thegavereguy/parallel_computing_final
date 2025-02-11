@@ -19,7 +19,7 @@ else
   echo "Keeping previous results";
 fi
 
-# Print information about the cpu
+# Print information about the cpu and gpu (which is somewhere in lspci)
 lscpu > results/cpu_info.txt
 lspci > results/gpu_info.txt
 

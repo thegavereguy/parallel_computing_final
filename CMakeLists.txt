@@ -16,6 +16,6 @@ else()
 	Message("Skipping Vulkan backend")
 endif()
 
-add_subdirectory(apps)
 add_subdirectory(src)
+add_subdirectory(apps)
 add_subdirectory(tests)
