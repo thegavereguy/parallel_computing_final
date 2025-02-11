@@ -18,7 +18,7 @@ if(DEFINED ENV{BUILD_MPI} AND "$ENV{BUILD_MPI}" STREQUAL "true")
 	find_package(MPI REQUIRED)
 	target_include_directories(mpi SYSTEM PRIVATE ${MPI_INCLUDE_PATH})
 	# target_link_libraries(mpi ${MPI_C_LIBRARIES})
-	target_link_libraries(mpi PUBLIC MPI::MPI_CXX)
+	target_link_libraries(mpi PUBLIC MPI::MPI_CXX fmt)
 
 # custom target to run mpi target with mpirun
 	add_custom_target(run_mpi
