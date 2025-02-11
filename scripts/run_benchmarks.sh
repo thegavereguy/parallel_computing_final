@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cpu_benches=( "cpu_seq" "cpu_par2" "cpu_par4" "cpu_par8" );
-gpu_benches=( "gpu1" "gpu2" "gpu4" "gpugrid" );
+gpu_benches=(  "gpugrid" );
 
 if [ -z "$BENCHMARK_SAMPLES" ]; then
 	export BENCHMARK_SAMPLES=5;

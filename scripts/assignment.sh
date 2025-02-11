@@ -21,7 +21,7 @@ fi
 
 # Print information about the cpu
 lscpu > results/cpu_info.txt
-lspcie > results/gpu_info.txt
+lspci > results/gpu_info.txt
 
 # Creta a build directory if it does not exist
 mkdir build > /dev/null
