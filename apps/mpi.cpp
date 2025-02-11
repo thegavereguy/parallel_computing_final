@@ -11,9 +11,9 @@ const double t_final = 0.1;  // Final time
 const int n_x        = 16;   // Number of spatial points
 const int n_t        = 30;   // Number of time steps
 
-void heat_equation(double *u, double *u_new, int local_nx, double lambda,
+void heat_equation(double *u, double *u_new, int local_nx, double alpha,
                    int rank, int size) {
-  float dt = t_final / (n_t);
+  float dt = t_final / (n_t - 1);
   float dx = L / (n_x - 1);
 
   MPI_Request request[4];  // Non-blocking send/receive requests
@@ -37,7 +37,7 @@ void heat_equation(double *u, double *u_new, int local_nx, double lambda,
     // Compute internal grid points (excluding ghost cells)
     for (int i = 2; i < local_nx; i++) {
       u_new[i] =
-          u[i] + lambda * (u[i - 1] - 2.0 * u[i] + u[i + 1]) * (dt / (dx * dx));
+          u[i] + alpha * (u[i - 1] - 2.0 * u[i] + u[i + 1]) * (dt / (dx * dx));
       fmt::print("{} ", u_new[i]);
     }
     fmt::print("\n");
@@ -47,10 +47,10 @@ void heat_equation(double *u, double *u_new, int local_nx, double lambda,
     if (rank < size - 1) MPI_Waitall(2, &request[2], MPI_STATUSES_IGNORE);
 
     // Compute boundary points after receiving ghost cells
-    u_new[1] = u[1] + lambda * (u[0] - 2.0 * u[1] + u[2]) * (dt / (dx * dx));
+    u_new[1] = u[1] + alpha * (u[0] - 2.0 * u[1] + u[2]) * (dt / (dx * dx));
     u_new[local_nx] =
         u[local_nx] +
-        lambda * (u[local_nx - 1] - 2.0 * u[local_nx] + u[local_nx + 1]) *
+        alpha * (u[local_nx - 1] - 2.0 * u[local_nx] + u[local_nx + 1]) *
             (dt / (dx * dx));
 
     if (rank == 0) {
@@ -70,7 +70,7 @@ void heat_equation(double *u, double *u_new, int local_nx, double lambda,
 
 int main(int argc, char **argv) {
   int rank, size;
-  float dt = t_final / (n_t);
+  float dt = t_final / (n_t - 1);
   float dx = L / (n_x - 1);
 
   MPI_Init(&argc, &argv);
@@ -100,10 +100,9 @@ int main(int argc, char **argv) {
     }
   }
 
-  double lambda     = alpha * dt / (dx * dx);
   double start_time = MPI_Wtime();
 
-  heat_equation(u, u_new, local_nx, lambda, rank, size);
+  heat_equation(u, u_new, local_nx, alpha, rank, size);
 
   double end_time = MPI_Wtime();
 
