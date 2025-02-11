@@ -82,10 +82,7 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
     uint32_t currentFrame = i % FRAME_OVERLAP;
     VkCommandBufferBeginInfo beginInfoA{};
     beginInfoA.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    // beginInfoA.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    // beginInfoA.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-    // Wait for previous execution of this frame
     vkWaitForFences(_device, 1, &_computeFences[currentFrame], VK_TRUE,
                     UINT64_MAX);
     VK_CHECK(vkResetFences(_device, 1, &_computeFences[currentFrame]));
@@ -209,8 +206,7 @@ std::vector<float> VulkanEngine::run_compute(uint32_t timesteps,
 
 void VulkanEngine::init_vulkan() {
   vkb::InstanceBuilder builder;
-  // create the vulkan instance
-  // abstrancts the creation of the VkInstance
+
   auto inst_ret =
       builder.set_app_name("Hello Triangle")
           .request_validation_layers(_useValidationLayers)
@@ -231,26 +227,11 @@ void VulkanEngine::init_vulkan() {
   _instance        = vkb_inst.instance;
   _debug_messenger = vkb_inst.debug_messenger;
 
-  // vulkan 1.3 features
-  // VkPhysicalDeviceVulkan13Features features13{
-  //     .sType            =
-  //     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-  //     .synchronization2 = true,
-  //     .dynamicRendering = false,
-  // };
-
   VALIDATION_MESSAGE("Selecting GPU\n");
   // use vkbootstrap to select a gpu.
   // We want a gpu that can write to the SDL surface and supports vulkan 1.3
   // with the correct features
   vkb::PhysicalDeviceSelector selector{vkb_inst};
-  // vkb::PhysicalDevice physicalDevice =
-  //     selector
-  //         .set_minimum_version(1, 3)
-  //         //.set_required_features_13(features)
-  //         .select_first_device_unconditionally()
-  //         .select()
-  //         .value();
 
   VkHeadlessSurfaceCreateInfoEXT surfaceCreateInfo{};
   surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT;
