@@ -70,23 +70,24 @@ void parallel8_inner(Conditions conditions, float* input, float* output) {
   }
 }
 
-void parallel2_outer(Conditions conditions, float* input, float* output) {
-  output[0]                  = input[0];
-  output[conditions.n_x - 1] = input[conditions.n_x - 1];
-  float dt                   = conditions.t_final / (conditions.n_t - 1);
-  float dx                   = conditions.L / (conditions.n_x - 1);
-
-#pragma omp parallel num_threads(2)
-  for (int i = 0; i < conditions.n_t; i++) {
-    for (int j = 1; j < conditions.n_x - 1; j++) {
-      output[j] =
-          input[j] + conditions.alpha * (dt / (dx * dx)) *
-                         (input[j + 1] - 2 * input[j] + input[j - 1]);  // d^2u
-    }
-#pragma omp barrier
-    std::swap(input, output);
-  }
-}
+// void parallel2_outer(Conditions conditions, float* input, float* output) {
+//   output[0]                  = input[0];
+//   output[conditions.n_x - 1] = input[conditions.n_x - 1];
+//   float dt                   = conditions.t_final / (conditions.n_t - 1);
+//   float dx                   = conditions.L / (conditions.n_x - 1);
+//
+// #pragma omp parallel num_threads(2)
+//   for (int i = 0; i < conditions.n_t; i++) {
+//     for (int j = 1; j < conditions.n_x - 1; j++) {
+//       output[j] =
+//           input[j] + conditions.alpha * (dt / (dx * dx)) *
+//                          (input[j + 1] - 2 * input[j] + input[j - 1]);  //
+//                          d^2u
+//     }
+// #pragma omp barrier
+//     std::swap(input, output);
+//   }
+// }
 
 void sequential_unroll(Conditions conditions, float* input, float* output) {
   output[0]                  = input[0];

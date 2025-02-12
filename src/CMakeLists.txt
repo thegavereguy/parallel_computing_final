@@ -13,6 +13,15 @@ target_link_libraries(shared PUBLIC fmt OpenMP::OpenMP_CXX)
 
 target_compile_options(shared PUBLIC -fopenmp)
 
+# check variable BUILD_OPTIMIZED
+if(DEFINED ENV{BUILD_OPTIMIZED} AND "$ENV{BUILD_OPTIMIZED}" STREQUAL "true")
+	message("Building optimized version of shared lib")
+	target_compile_options(shared PUBLIC -O3)
+else()
+	message("Building non-optimized version of shared lib")
+	target_compile_options(shared PUBLIC -O0)
+endif()
+
 
 if(DEFINED ENV{BUILD_MPI} AND "$ENV{BUILD_MPI}" STREQUAL "true")
 

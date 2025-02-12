@@ -5,7 +5,7 @@
 #PBS -o ./assignment.o
 #PBS -e ./assignment.e
 # Queue name
-#PBS -q short_gpuQ
+#PBS -q short_cpuQ
 # Set the maximum wall time
 #PBS -l walltime=0:40:00
 # Number of nodes, cpus, mpi processors and amount of memory
@@ -103,7 +103,7 @@ else
 fi
 
 # cheecky way to get the minimun required version of cmake
-/apps/cmake-20.3/bin/cmake ..
+/apps/cmake-3.20.3/bin/cmake ..
 
 make -j4
 cd ..

@@ -5,6 +5,7 @@ export BUILD_MPI=true
 export BUILD_ACC=true
 export DOWNLOAD_VULKAN_SDK=false
 export CLEAR_RESULTS=0
+export BUILD_OPTIMIZED=true
 
 export PROJECT_ROOT=$(pwd)
 
@@ -27,7 +28,7 @@ lspci > results/gpu_info.txt
 mkdir build > /dev/null
 cd build
 
-cmake ..
+cmake ..  -DBUILD_VULKAN=${BUILD_VULKAN} -DBUILD_MPI=${BUILD_MPI} -DBUILD_ACC=${BUILD_ACC} -DDOWNLOAD_VULKAN_SDK=${DOWNLOAD_VULKAN_SDK} -DBUILD_OPTIMIZED=${BUILD_OPTIMIZED}
 
 # Remove the previous build
 # make clean
